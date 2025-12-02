@@ -76,11 +76,12 @@
         const LOCAL_API_FALLBACK = "http://localhost:8000";
         const params = new URLSearchParams(window.location.search);
         const manualApiOverride = params.get("api");
-        const isHostedOnVercel = window.location.hostname.endsWith(".vercel.app");
-        const API_BASE = (manualApiOverride ?? (isHostedOnVercel ? window.location.origin : LOCAL_API_FALLBACK)).replace(
-            /\/$/,
-            ""
-        );
+        const isLocalhost =
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1";
+        // In production (Railway, Vercel, etc.), default to same-origin backend.
+        const defaultApiBase = isLocalhost ? LOCAL_API_FALLBACK : window.location.origin;
+        const API_BASE = (manualApiOverride ?? defaultApiBase).replace(/\/$/, "");
         const API_LISTINGS_URL = `${API_BASE}/api/listings`;
         const MARKETPLACE_ADDRESS = "0x0000000000000000000000000000000000dEaD00";
         const MARKETPLACE_ABI = [
