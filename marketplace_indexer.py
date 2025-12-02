@@ -13,6 +13,13 @@ from typing import Dict, Iterable, List, Literal, TypedDict
 from web3 import Web3
 from web3.contract.contract import ContractEvent
 
+from db import (
+    fetch_active_listing_rows,
+    init_db,
+    mark_listing_sold_record,
+    reset_listings_table,
+    upsert_listing_record,
+)
 
 DEFAULT_RPC_URL = "https://sepolia.infura.io/v3/YOUR_INFURA_KEY"
 RPC_URL = os.getenv("MARKETPLACE_RPC_URL", DEFAULT_RPC_URL)
@@ -84,14 +91,15 @@ class Listing:
         return asdict(self)
 
 
-IN_MEMORY_LISTINGS: Dict[str, Listing] = {}
-
-
 def checksum(address: str) -> str:
     try:
         return Web3.to_checksum_address(address)
     except ValueError:
         return address
+
+
+def normalize_address(address: str) -> str:
+    return address.lower()
 
 
 @lru_cache(maxsize=1)
@@ -192,23 +200,22 @@ def process_events(events: Iterable[dict]) -> None:
     """
 
     for event in events:
-        key = f"{event['nftAddress'].lower()}::{event['tokenId']}"
+        normalized_address = normalize_address(event["nftAddress"])
         match event["event"]:
             case "ListingCreated":
                 if event.get("priceWei") is None:
                     continue
                 price_wei = int(event["priceWei"])
-                IN_MEMORY_LISTINGS[key] = Listing(
+                upsert_listing_record(
                     token_id=event["tokenId"],
-                    nft_address=event["nftAddress"],
+                    nft_address=normalized_address,
                     price_eth=wei_to_eth_str(price_wei),
                     price_wei=str(price_wei),
-                    seller_address=event["seller"] or "",
+                    seller_address=event.get("seller") or "",
+                    is_sold=0,
                 )
             case "ListingSold":
-                listing = IN_MEMORY_LISTINGS.get(key)
-                if listing:
-                    listing.is_sold = True
+                mark_listing_sold_record(token_id=event["tokenId"], nft_address=normalized_address)
 
 
 def run_indexer() -> None:
@@ -216,7 +223,8 @@ def run_indexer() -> None:
     Public entrypoint that can be called during FastAPI startup or manually.
     """
 
-    IN_MEMORY_LISTINGS.clear()
+    init_db()
+    reset_listings_table()
     if USE_MOCK_EVENTS:
         events = simulate_event_stream()
     else:
@@ -225,9 +233,24 @@ def run_indexer() -> None:
 
 
 def get_active_listings() -> List[Listing]:
-    return [listing for listing in IN_MEMORY_LISTINGS.values() if not listing.is_sold]
+    init_db()
+    rows = fetch_active_listing_rows()
+    listings: List[Listing] = []
+    for row in rows:
+        listings.append(
+            Listing(
+                token_id=int(row["token_id"]),
+                nft_address=checksum(row["nft_address"]),
+                price_eth=row["price_eth"],
+                price_wei=row["price_wei"],
+                seller_address=row["seller_address"],
+                is_sold=bool(row["is_sold"]),
+            )
+        )
+    return listings
 
 
 def reset_index() -> None:
-    IN_MEMORY_LISTINGS.clear()
+    init_db()
+    reset_listings_table()
 

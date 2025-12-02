@@ -2,9 +2,8 @@
 
 This repository demonstrates the backend-heavy architecture described in the project brief. It follows a simple split:
 
-- `marketplace_indexer.py` handles Web3 connectivity, optional live-chain indexing, and an in-memory order book.
-- `app_factory.py` / `main.py` expose the API via FastAPI for local dev.
-- `api/` contains lightweight Python serverless functions so the same data can be served on Vercel.
+- `marketplace_indexer.py` handles Web3 connectivity, optional live-chain indexing, and a SQLite-backed order book.
+- `app_factory.py` / `main.py` expose the API via FastAPI for local dev and deployment (e.g. Railway).
 - `index.html` is a Tailwind + ethers.js UI that speaks to `/api/listings` and can trigger a real `buyItem` call through MetaMask.
 
 ## Local Development
@@ -20,7 +19,7 @@ Open `index.html` in a browser. When developing locally the page defaults to `ht
 
 ## Environment Variables
 
-Configure these locally (e.g. via `.env`) or inside Vercel → Settings → Environment Variables.
+Configure these locally (e.g. via `.env`) or inside your hosting provider’s environment variable settings.
 
 | Variable | Description | Default |
 | --- | --- | --- |
@@ -42,14 +41,6 @@ Troubleshooting tips:
 
 - If you see `ModuleNotFoundError: No module named 'encodings'`, double-check that the Docker builder is selected. That error shows up when Railway tries to boot a partial Python runtime instead of the container defined here.
 - Use `railway logs` to tail output. The FastAPI server binds to the injected `PORT`.
-
-## Deploying to Vercel
-
-1. Install the Vercel CLI and run `vercel login`.
-2. From the repo root run `vercel` (for a preview) or `vercel --prod`.
-3. During the first deploy, set the environment variables mentioned above when prompted or via the dashboard.
-
-Static assets (like `index.html`) are served directly by Vercel. Requests to `/api/listings` are handled by `api/listings.py`, which reuses the same indexer logic. The provided `vercel.json` pins Python runtimes to 3.11.
 
 ## Wallet & Chain Interaction
 
