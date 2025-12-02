@@ -4,6 +4,8 @@ Shared FastAPI application factory used for local dev (uvicorn) and Vercel.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from marketplace_indexer import get_active_listings, run_indexer
 
@@ -18,6 +20,16 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Serve the static frontend (index.html and any related assets)
+    app.mount("/static", StaticFiles(directory=".", html=False), name="static")
+
+    @app.get("/", include_in_schema=False)
+    async def root_index() -> FileResponse:
+        """
+        Return the main HTML page so the Railway web URL shows the UI.
+        """
+        return FileResponse("index.html")
 
     @app.on_event("startup")
     async def startup_indexer() -> None:  # pragma: no cover - FastAPI lifecycle
