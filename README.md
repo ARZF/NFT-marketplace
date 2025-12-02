@@ -3,7 +3,7 @@
 This repository demonstrates the backend-heavy architecture described in the project brief. It follows a simple split:
 
 - `marketplace_indexer.py` handles Web3 connectivity, optional live-chain indexing, and an in-memory order book.
-- `app_factory.py` / `main_app.py` expose the API via FastAPI for local dev.
+- `app_factory.py` / `main.py` expose the API via FastAPI for local dev.
 - `api/` contains lightweight Python serverless functions so the same data can be served on Vercel.
 - `index.html` is a Tailwind + ethers.js UI that speaks to `/api/listings` and can trigger a real `buyItem` call through MetaMask.
 
@@ -13,7 +13,7 @@ This repository demonstrates the backend-heavy architecture described in the pro
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 pip install -r requirements.txt
-uvicorn main_app:app --reload
+uvicorn main:app --reload
 ```
 
 Open `index.html` in a browser. When developing locally the page defaults to `http://localhost:8000` for API calls. You can override the backend origin by appending `?api=https://your-api-url` to the page URL.
