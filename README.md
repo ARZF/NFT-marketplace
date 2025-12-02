@@ -31,6 +31,18 @@ Configure these locally (e.g. via `.env`) or inside Vercel → Settings → Envi
 
 Set `USE_MOCK_EVENTS=false` plus a real RPC URL & contract address to turn on-chain reads on.
 
+## Deploying to Railway
+
+1. Install the [Railway CLI](https://docs.railway.app/develop/cli/installation) and run `railway login`.
+2. From the project root run `railway init` (first time) and connect the repo to a Railway service.
+3. Deploy with `railway up`. Railway will detect the `Dockerfile`, build the image, and launch `uvicorn main:app --host 0.0.0.0 --port $PORT`.
+4. Inside the Railway dashboard, set the environment variables from the table above (plus anything contract-specific).
+
+Troubleshooting tips:
+
+- If you see `ModuleNotFoundError: No module named 'encodings'`, double-check that the Docker builder is selected. That error shows up when Railway tries to boot a partial Python runtime instead of the container defined here.
+- Use `railway logs` to tail output. The FastAPI server binds to the injected `PORT`.
+
 ## Deploying to Vercel
 
 1. Install the Vercel CLI and run `vercel login`.
