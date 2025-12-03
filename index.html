@@ -83,7 +83,10 @@
         const defaultApiBase = isLocalhost ? LOCAL_API_FALLBACK : window.location.origin;
         const API_BASE = (manualApiOverride ?? defaultApiBase).replace(/\/$/, "");
         const API_LISTINGS_URL = `${API_BASE}/api/listings`;
-        const MARKETPLACE_ADDRESS = "0x0000000000000000000000000000000000dEaD00";
+        // Default to your deployed SimpleMarketplace on Sepolia.
+        // You can override this in the future by editing this constant or by
+        // wiring a small config endpoint in the backend.
+        const MARKETPLACE_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
         const MARKETPLACE_ABI = [
             "function buyItem(address nftAddress, uint256 tokenId) payable",
         ];
