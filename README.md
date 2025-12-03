@@ -23,12 +23,19 @@ Configure these locally (e.g. via `.env`) or inside your hosting provider’s en
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `MARKETPLACE_RPC_URL` | HTTPS RPC endpoint (Infura, Alchemy, etc.) | Sepolia placeholder |
-| `MARKETPLACE_CONTRACT_ADDRESS` | Deployed marketplace address | Dead address placeholder |
-| `USE_MOCK_EVENTS` | `true` keeps using the static dataset, `false` pulls real events via `web3.py` | `true` |
+| `MARKETPLACE_RPC_URL` | HTTPS RPC endpoint (Infura, Alchemy, etc.) | Sepolia placeholder (mock-only) |
+| `MARKETPLACE_CONTRACT_ADDRESS` | Deployed marketplace address | Dead address placeholder (mock-only) |
+| `USE_MOCK_EVENTS` | `true` keeps using the static dataset (no RPC needed), `false` pulls real events via `web3.py` | `true` |
 | `BLOCK_LOOKBACK` | Number of blocks to scan when indexing | `10000` |
 
-Set `USE_MOCK_EVENTS=false` plus a real RPC URL & contract address to turn on-chain reads on.
+To enable **real chain support** you must:
+
+- Set `USE_MOCK_EVENTS=false`
+- Provide a non-placeholder `MARKETPLACE_RPC_URL` (e.g. Infura/Alchemy with a real project key)
+- Provide a non-placeholder `MARKETPLACE_CONTRACT_ADDRESS` (0x-prefixed, 40-hex-character address)
+
+If any of these are missing or left on their placeholders, the indexer will raise a clear runtime error explaining
+what needs to be fixed instead of failing deep inside the Web3 stack.
 
 ## Deploying to Railway
 

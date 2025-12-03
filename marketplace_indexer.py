@@ -4,6 +4,7 @@ NFT Marketplace indexer with optional live-chain reads plus a mock fallback.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import asdict, dataclass
 from decimal import Decimal
@@ -12,6 +13,7 @@ from typing import Dict, Iterable, List, Literal, TypedDict
 
 from web3 import Web3
 from web3.contract.contract import ContractEvent
+from web3.exceptions import InvalidAddress
 
 from db import (
     fetch_active_listing_rows,
@@ -21,10 +23,12 @@ from db import (
     upsert_listing_record,
 )
 
-DEFAULT_RPC_URL = "https://sepolia.infura.io/v3/YOUR_INFURA_KEY"
-RPC_URL = os.getenv("MARKETPLACE_RPC_URL", DEFAULT_RPC_URL)
-DEFAULT_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000dEaD00"
-MARKETPLACE_ADDRESS = os.getenv("MARKETPLACE_CONTRACT_ADDRESS", DEFAULT_CONTRACT_ADDRESS)
+logger = logging.getLogger(__name__)
+
+DEFAULT_RPC_URL = "https://sepolia.infura.io/v3/4036356a8e854f59b20955086e4f7acf"
+RPC_URL = os.getenv("MARKETPLACE_RPC_URL", DEFAULT_RPC_URL).strip()
+DEFAULT_CONTRACT_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15"
+MARKETPLACE_ADDRESS = os.getenv("MARKETPLACE_CONTRACT_ADDRESS", DEFAULT_CONTRACT_ADDRESS).strip()
 USE_MOCK_EVENTS = os.getenv("USE_MOCK_EVENTS", "true").lower() in {"true", "1", "yes"}
 BLOCK_LOOKBACK = int(os.getenv("BLOCK_LOOKBACK", "10000"))
 
@@ -104,6 +108,13 @@ def normalize_address(address: str) -> str:
 
 @lru_cache(maxsize=1)
 def web3_client() -> Web3:
+    """
+    Lazily-initialized Web3 client.
+
+    NOTE: Validation of RPC URL and contract address is performed in
+    `validate_chain_configuration` which is called from `run_indexer` before
+    we ever construct the client for live-chain reads.
+    """
     return Web3(Web3.HTTPProvider(RPC_URL, request_kwargs={"timeout": 10}))
 
 
@@ -163,9 +174,59 @@ def simulate_event_stream() -> Iterable[dict]:
         yield evt
 
 
+def validate_chain_configuration() -> None:
+    """
+    Ensure that when USE_MOCK_EVENTS is disabled we have sane on-chain settings.
+
+    This is aimed at better runtime errors on Railway / production where
+    forgetting to set env vars can otherwise result in obscure Web3 failures.
+    """
+
+    # RPC URL checks
+    if not RPC_URL:
+        raise ValueError(
+            "MARKETPLACE_RPC_URL is empty. Set a real HTTPS RPC endpoint or re-enable USE_MOCK_EVENTS."
+        )
+    if "YOUR_INFURA_KEY" in RPC_URL:
+        raise ValueError(
+            "MARKETPLACE_RPC_URL is still using the placeholder Infura URL. "
+            "Replace YOUR_INFURA_KEY with a real project ID, or set USE_MOCK_EVENTS=true."
+        )
+
+    # Contract address checks
+    if not MARKETPLACE_ADDRESS:
+        raise ValueError(
+            "MARKETPLACE_CONTRACT_ADDRESS is empty. Set it to your deployed marketplace contract address "
+            "or re-enable USE_MOCK_EVENTS."
+        )
+    if MARKETPLACE_ADDRESS == DEFAULT_CONTRACT_ADDRESS:
+        raise ValueError(
+            "MARKETPLACE_CONTRACT_ADDRESS is still the dead placeholder address. "
+            "Set it to your deployed marketplace contract address, or set USE_MOCK_EVENTS=true."
+        )
+
+    try:
+        # This will raise InvalidAddress if the format is wrong.
+        Web3.to_checksum_address(MARKETPLACE_ADDRESS)
+    except (InvalidAddress, ValueError) as exc:  # web3 <-> py differences
+        raise ValueError(
+            f"MARKETPLACE_CONTRACT_ADDRESS '{MARKETPLACE_ADDRESS}' is not a valid Ethereum address. "
+            "Expected a 0x-prefixed, 40-hex-character address."
+        ) from exc
+
+
 def fetch_contract_events(w3: Web3) -> List[dict]:
-    contract = w3.eth.contract(address=checksum(MARKETPLACE_ADDRESS), abi=MARKETPLACE_ABI)
-    latest = w3.eth.block_number
+    try:
+        contract = w3.eth.contract(address=checksum(MARKETPLACE_ADDRESS), abi=MARKETPLACE_ABI)
+        latest = w3.eth.block_number
+    except Exception as exc:  # pragma: no cover - defensive, type varies
+        # Surface configuration / connectivity issues explicitly instead of
+        # failing deep inside web3 with a less obvious stack trace.
+        raise RuntimeError(
+            "Failed to connect to Ethereum RPC or load marketplace contract. "
+            f"RPC URL: '{RPC_URL}', contract: '{MARKETPLACE_ADDRESS}'. "
+            "Double-check MARKETHPLACE_RPC_URL / MARKETPLACE_CONTRACT_ADDRESS or re-enable USE_MOCK_EVENTS."
+        ) from exc
     from_block = max(latest - BLOCK_LOOKBACK, 0)
 
     def parse_logs(event: ContractEvent, event_name: str) -> List[dict]:
@@ -225,9 +286,28 @@ def run_indexer() -> None:
 
     init_db()
     reset_listings_table()
+
     if USE_MOCK_EVENTS:
+        logger.info("USE_MOCK_EVENTS=true — seeding listings from built-in mock dataset.")
         events = simulate_event_stream()
     else:
+        # Fail fast with a clear explanation if env vars are misconfigured.
+        try:
+            validate_chain_configuration()
+        except ValueError as exc:
+            logger.error("Live-chain indexing disabled due to invalid configuration: %s", exc)
+            raise RuntimeError(
+                f"Cannot run live-chain indexer: {exc}. "
+                "Either fix the environment variables or set USE_MOCK_EVENTS=true."
+            ) from exc
+
+        logger.info(
+            "USE_MOCK_EVENTS=false — fetching real events from chain. "
+            "RPC URL: %s, contract: %s, lookback: %d blocks",
+            RPC_URL,
+            MARKETPLACE_ADDRESS,
+            BLOCK_LOOKBACK,
+        )
         events = fetch_contract_events(web3_client())
     process_events(events)
 
