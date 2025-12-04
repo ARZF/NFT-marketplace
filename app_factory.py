@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from api.nft import router as nft_router
+
 
 from marketplace_indexer import get_active_listings, run_indexer
 
@@ -43,5 +45,12 @@ def create_app() -> FastAPI:
     def read_listings() -> list[dict]:
         return [listing.to_dict() for listing in get_active_listings()]
 
+    @app.post("/api/reindex")
+    def reindex() -> list[dict]:
+        run_indexer()
+        return [listing.to_dict() for listing in get_active_listings()]
+
+    app.include_router(nft_router)
+    
     return app
 

@@ -24,7 +24,58 @@
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-6 py-12">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-16">
+        <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-8">
+            <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+                <div>
+                    <p class="text-sm uppercase text-slate-400 tracking-wide">
+                        Creator Panel
+                    </p>
+                    <h2 class="text-3xl font-semibold text-white">
+                        Mint a New NFT
+                    </h2>
+                </div>
+                <p class="text-slate-400 text-sm max-w-sm">
+                    Upload your artwork and metadata. The backend stores it on NFT.Storage via
+                    <code>/api/nft/upload</code>.
+                </p>
+            </div>
+            <form id="mintForm" class="space-y-6">
+                <div>
+                    <label for="mintName" class="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                    <input id="mintName" name="name" type="text" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        placeholder="e.g. Celestial Tiger #1" />
+                </div>
+                <div>
+                    <label for="mintDescription"
+                        class="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                    <textarea id="mintDescription" name="description" rows="3"
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        placeholder="Optional story for this NFT"></textarea>
+                </div>
+                <div>
+                    <label for="mintPrice" class="block text-sm font-medium text-slate-300 mb-2">Price (ETH)</label>
+                    <input id="mintPrice" name="price" type="number" step="0.000000000000000001" min="0" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        placeholder="e.g. 0.1" />
+                </div>
+                <div>
+                    <label for="mintImage" class="block text-sm font-medium text-slate-300 mb-2">Artwork</label>
+                    <input id="mintImage" name="file" type="file" accept="image/*" required
+                        class="w-full rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-4 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-400 file:px-4 file:py-2 file:text-slate-900" />
+                </div>
+                <button type="submit"
+                    class="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-400 text-slate-900 font-semibold hover:bg-emerald-300 transition disabled:opacity-60"
+                    id="mintSubmitButton">
+                    Upload &amp; Prepare Metadata
+                </button>
+            </form>
+            <div id="mintResult" class="mt-6 text-sm text-slate-300 hidden">
+                <!-- Status text will be injected -->
+            </div>
+        </section>
+
         <section>
             <div class="flex items-end justify-between gap-4 flex-wrap mb-8">
                 <div>
@@ -83,23 +134,40 @@
         const defaultApiBase = isLocalhost ? LOCAL_API_FALLBACK : window.location.origin;
         const API_BASE = (manualApiOverride ?? defaultApiBase).replace(/\/$/, "");
         const API_LISTINGS_URL = `${API_BASE}/api/listings`;
+        const API_NFT_UPLOAD_URL = `${API_BASE}/api/nft/upload`;
+        const API_REINDEX_URL = `${API_BASE}/api/reindex`;
         // Default to your deployed SimpleMarketplace on Sepolia.
         // You can override this in the future by editing this constant or by
         // wiring a small config endpoint in the backend.
         const MARKETPLACE_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
+        const NFT_CONTRACT_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
         const MARKETPLACE_ABI = [
             "function buyItem(address nftAddress, uint256 tokenId) payable",
+            "function listItem(address nftAddress, uint256 tokenId, uint256 price)",
         ];
+        const NFT_ABI = [
+            "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+            "function mint(string uri) returns (uint256)",
+            "function approve(address to, uint256 tokenId)",
+            "function setApprovalForAll(address operator, bool approved)",
+        ];
+        const ERC721_TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
 
         const listingsGrid = document.getElementById("listingsGrid");
         const emptyState = document.getElementById("emptyState");
         const walletButton = document.getElementById("walletButton");
+        const mintForm = document.getElementById("mintForm");
+        const mintResult = document.getElementById("mintResult");
+        const mintSubmitButton = document.getElementById("mintSubmitButton");
+        const mintImageInput = document.getElementById("mintImage");
+        const mintPriceInput = document.getElementById("mintPrice");
 
         let provider = null;
         let signer = null;
         let userAddress = null;
 
         walletButton.addEventListener("click", () => connectWallet());
+        mintForm?.addEventListener("submit", handleMintForm);
 
         async function connectWallet() {
             if (!window.ethereum) {
@@ -191,6 +259,106 @@
                 button.disabled = false;
                 button.textContent = "Buy NFT";
             }
+        }
+
+        async function handleMintForm(event) {
+            event.preventDefault();
+            if (!mintImageInput?.files?.length) {
+                setMintStatus("Please choose an image file to upload.", "error");
+                return;
+            }
+            const formData = new FormData(mintForm);
+            formData.set("file", mintImageInput.files[0]);
+
+            try {
+                if (!signer) {
+                    await connectWallet();
+                }
+                if (!signer) {
+                    setMintStatus("Wallet connection required.", "error");
+                    return;
+                }
+
+                mintSubmitButton.disabled = true;
+                mintSubmitButton.textContent = "Uploading...";
+                setMintStatus("Uploading artwork to NFT.Storage...", "info");
+
+                const response = await fetch(API_NFT_UPLOAD_URL, {
+                    method: "POST",
+                    body: formData,
+                });
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(errText || `Upload failed (${response.status})`);
+                }
+                const result = await response.json();
+                if (!result?.ok) {
+                    throw new Error("Unexpected response from backend");
+                }
+
+                const tokenURI = `ipfs://${result.image_cid}`;
+                const priceEth = parseFloat(mintPriceInput.value);
+                if (!(priceEth > 0)) {
+                    throw new Error("Enter a valid positive price");
+                }
+                const priceWei = ethers.parseUnits(priceEth.toString(), 18);
+
+                setMintStatus("Minting NFT on-chain...", "info");
+                const nft = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
+                const txMint = await nft.mint(tokenURI);
+                const receiptMint = await txMint.wait();
+
+                let mintedTokenId = null;
+                for (const log of receiptMint.logs ?? []) {
+                    if (log.address.toLowerCase() === NFT_CONTRACT_ADDRESS.toLowerCase() && log.topics?.[0] === ERC721_TRANSFER_TOPIC) {
+                        mintedTokenId = BigInt(log.topics[2]);
+                        break;
+                    }
+                }
+                if (mintedTokenId === null) {
+                    throw new Error("Unable to determine minted tokenId from receipt logs");
+                }
+
+                setMintStatus("Approving marketplace...", "info");
+                const approveTx = await nft.approve(MARKETPLACE_ADDRESS, mintedTokenId);
+                await approveTx.wait();
+
+                setMintStatus("Creating marketplace listing...", "info");
+                const market = new ethers.Contract(MARKETPLACE_ADDRESS, MARKETPLACE_ABI, signer);
+                const txList = await market.listItem(NFT_CONTRACT_ADDRESS, mintedTokenId, priceWei);
+                await txList.wait();
+
+                setMintStatus("Listing created. Refreshing inventory...", "info");
+                await fetch(API_REINDEX_URL, { method: "POST" }).catch(() => { });
+                await fetchListings();
+
+                const metadataPreview = JSON.stringify(result.metadata, null, 2);
+                setMintStatus(
+                    `Success! Minted tokenId: ${mintedTokenId.toString()} and listed at ${priceEth} ETH.\n\nMetadata preview:\n${metadataPreview}`,
+                    "success"
+                );
+                mintForm.reset();
+            } catch (error) {
+                console.error("Mint+List failed", error);
+                setMintStatus(error.message || "Operation failed. See console.", "error");
+            } finally {
+                mintSubmitButton.disabled = false;
+                mintSubmitButton.textContent = "Upload & Prepare Metadata";
+            }
+        }
+
+        function setMintStatus(message, type = "info") {
+            if (!mintResult) {
+                return;
+            }
+            mintResult.textContent = message;
+            mintResult.classList.remove("hidden", "text-slate-300", "text-emerald-300", "text-red-400");
+            const classMap = {
+                info: "text-slate-300",
+                success: "text-emerald-300",
+                error: "text-red-400",
+            };
+            mintResult.classList.add(classMap[type] ?? "text-slate-300");
         }
 
         function shortenAddress(address = "") {
