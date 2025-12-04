@@ -1,11 +1,21 @@
 import os
+import uuid
 import requests
+import boto3
+from botocore.client import Config
 
 NFT_STORAGE_API_KEY = (os.getenv("NFT_STORAGE_API_KEY") or "").strip()
 NFT_STORAGE_UPLOAD_URL = "https://api.nft.storage/upload"
 
+ASSET_STORAGE_PROVIDER = (os.getenv("ASSET_STORAGE_PROVIDER") or "nftstorage").strip().lower()
+FILEBASE_ENDPOINT = (os.getenv("FILEBASE_S3_ENDPOINT") or "https://s3.filebase.com").strip()
+FILEBASE_ACCESS_KEY_ID = (os.getenv("FILEBASE_ACCESS_KEY_ID") or "").strip()
+FILEBASE_SECRET_ACCESS_KEY = (os.getenv("FILEBASE_SECRET_ACCESS_KEY") or "").strip()
+FILEBASE_BUCKET = (os.getenv("FILEBASE_BUCKET") or "").strip()
+FILEBASE_REGION = (os.getenv("FILEBASE_REGION") or "us-east-1").strip()
 
-def upload_file_to_nft_storage(file_bytes: bytes, filename: str, mime_type: str) -> str:
+
+def _upload_via_nft_storage(file_bytes: bytes, filename: str, mime_type: str) -> str:
     if not NFT_STORAGE_API_KEY:
         raise RuntimeError("NFT_STORAGE_API_KEY is not set")
 
@@ -20,3 +30,33 @@ def upload_file_to_nft_storage(file_bytes: bytes, filename: str, mime_type: str)
     if not data.get("ok"):
         raise RuntimeError(f"NFT.Storage upload failed: {data}")
     return data["value"]["cid"]
+
+
+def _upload_via_filebase(file_bytes: bytes, filename: str, mime_type: str) -> str:
+    if not (FILEBASE_ACCESS_KEY_ID and FILEBASE_SECRET_ACCESS_KEY and FILEBASE_BUCKET):
+        raise RuntimeError("Missing Filebase configuration: set FILEBASE_ACCESS_KEY_ID, FILEBASE_SECRET_ACCESS_KEY, FILEBASE_BUCKET")
+
+    key = filename or f"upload-{uuid.uuid4().hex}"
+    session = boto3.session.Session()
+    s3 = session.client(
+        service_name="s3",
+        endpoint_url=FILEBASE_ENDPOINT,
+        aws_access_key_id=FILEBASE_ACCESS_KEY_ID,
+        aws_secret_access_key=FILEBASE_SECRET_ACCESS_KEY,
+        region_name=FILEBASE_REGION,
+        config=Config(signature_version="s3v4"),
+    )
+
+    s3.put_object(Bucket=FILEBASE_BUCKET, Key=key, Body=file_bytes, ContentType=mime_type)
+    head = s3.head_object(Bucket=FILEBASE_BUCKET, Key=key)
+    headers = head.get("ResponseMetadata", {}).get("HTTPHeaders", {})
+    cid = headers.get("x-amz-meta-cid")
+    if not cid:
+        raise RuntimeError("Filebase did not return CID in headers; verify bucket is IPFS-enabled")
+    return cid
+
+
+def upload_file_to_nft_storage(file_bytes: bytes, filename: str, mime_type: str) -> str:
+    if ASSET_STORAGE_PROVIDER == "filebase":
+        return _upload_via_filebase(file_bytes, filename, mime_type)
+    return _upload_via_nft_storage(file_bytes, filename, mime_type)
