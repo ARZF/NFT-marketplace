@@ -139,8 +139,8 @@
         // Default to your deployed SimpleMarketplace on Sepolia.
         // You can override this in the future by editing this constant or by
         // wiring a small config endpoint in the backend.
-        const MARKETPLACE_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
-        const NFT_CONTRACT_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
+        let MARKETPLACE_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
+        let NFT_CONTRACT_ADDRESS = "0xDB9d9Bb58dB6774bbD72a9cBefb483F03Db1A5Fe";
         const MARKETPLACE_ABI = [
             "function buyItem(address nftAddress, uint256 tokenId) payable",
             "function listItem(address nftAddress, uint256 tokenId, uint256 price)",
@@ -152,6 +152,8 @@
             "function setApprovalForAll(address operator, bool approved)",
         ];
         const ERC721_TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
+
+        loadBackendConfig();
 
         const listingsGrid = document.getElementById("listingsGrid");
         const emptyState = document.getElementById("emptyState");
@@ -279,6 +281,11 @@
                     return;
                 }
 
+                const valid = await validateConfig();
+                if (!valid) {
+                    return;
+                }
+
                 mintSubmitButton.disabled = true;
                 mintSubmitButton.textContent = "Uploading...";
                 setMintStatus("Uploading artwork to NFT.Storage...", "info");
@@ -364,6 +371,51 @@
         function shortenAddress(address = "") {
             if (!address || address.length < 10) return address || "N/A";
             return `${address.slice(0, 6)}...${address.slice(-4)}`;
+        }
+
+        async function loadBackendConfig() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/config`);
+                if (!resp.ok) return;
+                const cfg = await resp.json();
+                if (cfg?.marketplaceAddress) {
+                    MARKETPLACE_ADDRESS = cfg.marketplaceAddress;
+                }
+                if (cfg?.nftContractAddress) {
+                    NFT_CONTRACT_ADDRESS = cfg.nftContractAddress;
+                }
+            } catch {}
+        }
+
+        async function validateConfig() {
+            if (!NFT_CONTRACT_ADDRESS || !MARKETPLACE_ADDRESS) {
+                setMintStatus("Missing contract addresses.", "error");
+                return false;
+            }
+            if (NFT_CONTRACT_ADDRESS.toLowerCase() === MARKETPLACE_ADDRESS.toLowerCase()) {
+                setMintStatus("NFT_CONTRACT_ADDRESS must differ from MARKETPLACE_ADDRESS.", "error");
+                return false;
+            }
+            if (!provider) {
+                await connectWallet();
+                if (!provider) return false;
+            }
+            try {
+                const nftCode = await provider.getCode(NFT_CONTRACT_ADDRESS);
+                const marketCode = await provider.getCode(MARKETPLACE_ADDRESS);
+                if (!nftCode || nftCode === "0x") {
+                    setMintStatus("No contract found at NFT_CONTRACT_ADDRESS.", "error");
+                    return false;
+                }
+                if (!marketCode || marketCode === "0x") {
+                    setMintStatus("No contract found at MARKETPLACE_ADDRESS.", "error");
+                    return false;
+                }
+            } catch (e) {
+                setMintStatus("Failed to validate contract addresses.", "error");
+                return false;
+            }
+            return true;
         }
 
         fetchListings();
