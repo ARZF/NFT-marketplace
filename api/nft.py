@@ -25,3 +25,10 @@ async def upload_to_ipfs(
         return JSONResponse({"ok": True, "image_cid": image_cid, "metadata": metadata})
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/key-status")
+def key_status() -> JSONResponse:
+    from nft_storage_client import NFT_STORAGE_API_KEY
+    present = bool(NFT_STORAGE_API_KEY)
+    return JSONResponse({"ok": True, "present": present})
