@@ -423,6 +423,14 @@ def get_active_listings() -> List[Listing]:
     rows = fetch_active_listing_rows()
     listings: List[Listing] = []
     for row in rows:
+
+        # Helper function to safely get optional columns (for backward compatibility with old DB schemas)
+        def safe_get(key):
+            try:
+                return row[key]
+            except (KeyError, IndexError):
+                return None
+        
         listing = Listing(
             token_id=int(row["token_id"]),
             nft_address=checksum(row["nft_address"]),
@@ -430,10 +438,10 @@ def get_active_listings() -> List[Listing]:
             price_wei=row["price_wei"],
             seller_address=row["seller_address"],
             is_sold=bool(row["is_sold"]),
-            name=row.get("name"),
-            description=row.get("description"),
-            image_url=row.get("image_url"),
-            token_uri=row.get("token_uri"),
+            name=safe_get("name"),
+            description=safe_get("description"),
+            image_url=safe_get("image_url"),
+            token_uri=safe_get("token_uri"),
         )
         # Only fetch if metadata is missing
         if not listing.name or not listing.image_url:
