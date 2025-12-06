@@ -319,8 +319,12 @@
                 let mintedTokenId = null;
                 for (const log of receiptMint.logs ?? []) {
                     if (log.address.toLowerCase() === NFT_CONTRACT_ADDRESS.toLowerCase() && log.topics?.[0] === ERC721_TRANSFER_TOPIC) {
-                        mintedTokenId = BigInt(log.topics[2]);
-                        break;
+                        // For ERC721 Transfer event: topics[0]=signature, topics[1]=from, topics[2]=to, topics[3]=tokenId
+                        const tokenIdHex = log.topics[3] || log.topics[2]; // Fallback to topics[2] if topics[3] doesn't exist
+                        if (tokenIdHex) {
+                            mintedTokenId = BigInt(tokenIdHex);
+                            break;
+                        }
                     }
                 }
                 if (mintedTokenId === null) {
@@ -328,12 +332,14 @@
                 }
 
                 setMintStatus("Approving marketplace...", "info");
-                const approveTx = await nft.approve(MARKETPLACE_ADDRESS, mintedTokenId);
+                // Convert BigInt to string for ethers.js compatibility
+                const tokenIdForApprove = mintedTokenId.toString();
+                const approveTx = await nft.approve(MARKETPLACE_ADDRESS, tokenIdForApprove);
                 await approveTx.wait();
 
                 setMintStatus("Creating marketplace listing...", "info");
                 const market = new ethers.Contract(MARKETPLACE_ADDRESS, MARKETPLACE_ABI, signer);
-                const txList = await market.listItem(NFT_CONTRACT_ADDRESS, mintedTokenId, priceWei);
+                const txList = await market.listItem(NFT_CONTRACT_ADDRESS, tokenIdForApprove, priceWei);
                 await txList.wait();
 
                 setMintStatus("Listing created. Refreshing inventory...", "info");
