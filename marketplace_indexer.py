@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import logging
 import os
+import requests
 from dataclasses import asdict, dataclass
 from decimal import Decimal
 from functools import lru_cache
-from typing import Dict, Iterable, List, Literal, TypedDict
+from typing import Dict, Iterable, List, Literal, TypedDict, Optional
 
 from web3 import Web3
 from web3.contract.contract import ContractEvent
@@ -66,6 +67,17 @@ MARKETPLACE_ABI = [
     },
 ]
 
+# NFT ABI for tokenURI function (standard ERC721)
+NFT_ABI = [
+    {
+        "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+        "name": "tokenURI",
+        "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+        "stateMutability": "view",
+        "type": "function",
+    }
+]
+
 
 class ListingCreatedEvent(TypedDict):
     event: Literal["ListingCreated"]
@@ -90,6 +102,11 @@ class Listing:
     price_wei: str
     seller_address: str
     is_sold: bool = False
+    # Metadata fields
+    name: Optional[str] = None
+    description: Optional[str] = None
+    image_url: Optional[str] = None
+    token_uri: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         return asdict(self)
@@ -123,6 +140,95 @@ def wei_to_eth_str(value_wei: int) -> str:
     normalized = eth_value.normalize()
     text = format(normalized, "f")
     return text.rstrip("0").rstrip(".") if "." in text else text
+
+
+def ipfs_to_https(ipfs_url: str) -> str:
+    """
+    Convert IPFS URL to HTTPS gateway URL.
+    Supports both ipfs:// and https://ipfs.io formats.
+    """
+    if not ipfs_url:
+        return ""
+    
+    # Handle ipfs:// protocol
+    if ipfs_url.startswith("ipfs://"):
+        cid = ipfs_url.replace("ipfs://", "").strip("/")
+        # Use IPFS.io gateway (can add fallbacks if needed)
+        return f"https://ipfs.io/ipfs/{cid}"
+    
+    # Already HTTPS or other format
+    return ipfs_url
+
+
+def fetch_ipfs_json(ipfs_url: str, timeout: int = 10) -> Optional[Dict]:
+    """
+    Fetch and parse JSON metadata from IPFS.
+    """
+    if not ipfs_url:
+        return None
+    
+    https_url = ipfs_to_https(ipfs_url)
+    if not https_url:
+        return None
+    
+    try:
+        response = requests.get(https_url, timeout=timeout)
+        response.raise_for_status()
+        return response.json()
+    except Exception as exc:
+        logger.warning(f"Failed to fetch IPFS metadata from {https_url}: {exc}")
+        return None
+
+
+def fetch_token_uri(w3: Web3, nft_address: str, token_id: int) -> Optional[str]:
+    """
+    Fetch tokenURI from NFT contract.
+    """
+    try:
+        nft_contract = w3.eth.contract(address=checksum(nft_address), abi=NFT_ABI)
+        token_uri = nft_contract.functions.tokenURI(token_id).call()
+        return token_uri if token_uri else None
+    except Exception as exc:
+        logger.warning(f"Failed to fetch tokenURI for {nft_address}#{token_id}: {exc}")
+        return None
+
+
+def enrich_listing_with_metadata(listing: Listing) -> Listing:
+    """
+    Fetch and enrich a listing with NFT metadata from IPFS.
+    """
+    # Only fetch if we don't already have metadata
+    if listing.name and listing.image_url:
+        return listing
+    
+    # Skip if we can't connect to chain (mock mode)
+    if USE_MOCK_EVENTS:
+        # In mock mode, we can't fetch real tokenURI, so return as-is
+        return listing
+    
+    try:
+        w3 = web3_client()
+        token_uri = fetch_token_uri(w3, listing.nft_address, listing.token_id)
+        
+        if not token_uri:
+            return listing
+        
+        listing.token_uri = token_uri
+        metadata = fetch_ipfs_json(token_uri)
+        
+        if metadata:
+            listing.name = metadata.get("name", f"Token #{listing.token_id}")
+            listing.description = metadata.get("description", "")
+            
+            # Handle image field - could be IPFS URL or HTTPS
+            image = metadata.get("image", "")
+            if image:
+                listing.image_url = ipfs_to_https(image)
+        
+    except Exception as exc:
+        logger.warning(f"Failed to enrich listing {listing.token_id}: {exc}")
+    
+    return listing
 
 
 def simulate_event_stream() -> Iterable[dict]:
@@ -317,16 +423,37 @@ def get_active_listings() -> List[Listing]:
     rows = fetch_active_listing_rows()
     listings: List[Listing] = []
     for row in rows:
-        listings.append(
-            Listing(
-                token_id=int(row["token_id"]),
-                nft_address=checksum(row["nft_address"]),
-                price_eth=row["price_eth"],
-                price_wei=row["price_wei"],
-                seller_address=row["seller_address"],
-                is_sold=bool(row["is_sold"]),
-            )
+        listing = Listing(
+            token_id=int(row["token_id"]),
+            nft_address=checksum(row["nft_address"]),
+            price_eth=row["price_eth"],
+            price_wei=row["price_wei"],
+            seller_address=row["seller_address"],
+            is_sold=bool(row["is_sold"]),
+            name=row.get("name"),
+            description=row.get("description"),
+            image_url=row.get("image_url"),
+            token_uri=row.get("token_uri"),
         )
+        # Only fetch if metadata is missing
+        if not listing.name or not listing.image_url:
+            listing = enrich_listing_with_metadata(listing)
+            # Cache the metadata in database
+            if listing.name or listing.image_url:
+                from db import upsert_listing_record
+                upsert_listing_record(
+                    token_id=listing.token_id,
+                    nft_address=listing.nft_address,
+                    price_eth=listing.price_eth,
+                    price_wei=listing.price_wei,
+                    seller_address=listing.seller_address,
+                    is_sold=1 if listing.is_sold else 0,
+                    name=listing.name,
+                    description=listing.description,
+                    image_url=listing.image_url,
+                    token_uri=listing.token_uri,
+                )
+        listings.append(listing)
     return listings
 
 

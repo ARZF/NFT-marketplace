@@ -217,8 +217,9 @@
                     .getElementById("listingCardTemplate")
                     .content.cloneNode(true);
 
-                const tokenName = `Token #${listing.token_id}`;
-                const mockImage = `https://picsum.photos/seed/${listing.token_id}/400/300`;
+                // Use actual metadata if available, otherwise fallback to defaults
+                const tokenName = listing.name || `Token #${listing.token_id}`;
+                const imageUrl = listing.image_url || `https://picsum.photos/seed/${listing.token_id}/400/300`;
 
                 template.querySelector('[data-field="title"]').textContent = tokenName;
                 template.querySelector('[data-field="address"]').textContent = `NFT: ${shortenAddress(listing.nft_address)}`;
@@ -226,7 +227,7 @@
                 template.querySelector('[data-field="seller"]').textContent = `Seller: ${shortenAddress(
                     listing.seller_address
                 )}`;
-                template.querySelector('[data-field="image"]').style.backgroundImage = `url(${mockImage})`;
+                template.querySelector('[data-field="image"]').style.backgroundImage = `url(${imageUrl})`;
 
                 const buyButton = template.querySelector(".buy-btn");
                 buyButton.addEventListener("click", () => handleBuy(listing, buyButton));
@@ -384,7 +385,7 @@
                 if (cfg?.nftContractAddress) {
                     NFT_CONTRACT_ADDRESS = cfg.nftContractAddress;
                 }
-            } catch {}
+            } catch { }
         }
 
         async function validateConfig() {

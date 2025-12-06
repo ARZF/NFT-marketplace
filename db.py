@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sqlite3
 from pathlib import Path
+from typing import Optional
 
 
 DB_PATH_SETTING = os.getenv("MARKETPLACE_DB_PATH", "marketplace.db")
@@ -43,10 +44,31 @@ def init_db() -> None:
             price_wei TEXT NOT NULL,
             seller_address TEXT NOT NULL,
             is_sold INTEGER NOT NULL DEFAULT 0,
+            name TEXT,
+            description TEXT,
+            image_url TEXT,
+            token_uri TEXT,
             UNIQUE (token_id, nft_address)
         );
         """
     )
+    # Add metadata columns if they don't exist (for existing databases)
+    try:
+        conn.execute("ALTER TABLE listings ADD COLUMN name TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    try:
+        conn.execute("ALTER TABLE listings ADD COLUMN description TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    try:
+        conn.execute("ALTER TABLE listings ADD COLUMN image_url TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    try:
+        conn.execute("ALTER TABLE listings ADD COLUMN token_uri TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     conn.commit()
     _is_initialized = True
 
@@ -66,21 +88,29 @@ def upsert_listing_record(
     price_wei: str,
     seller_address: str,
     is_sold: int = 0,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    image_url: Optional[str] = None,
+    token_uri: Optional[str] = None,
 ) -> None:
     init_db()
     conn = get_connection()
     with conn:
         conn.execute(
             """
-            INSERT INTO listings (token_id, nft_address, price_eth, price_wei, seller_address, is_sold)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO listings (token_id, nft_address, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(token_id, nft_address) DO UPDATE SET
                 price_eth=excluded.price_eth,
                 price_wei=excluded.price_wei,
                 seller_address=excluded.seller_address,
-                is_sold=excluded.is_sold;
+                is_sold=excluded.is_sold,
+                name=COALESCE(excluded.name, listings.name),
+                description=COALESCE(excluded.description, listings.description),
+                image_url=COALESCE(excluded.image_url, listings.image_url),
+                token_uri=COALESCE(excluded.token_uri, listings.token_uri);
             """,
-            (token_id, nft_address, price_eth, price_wei, seller_address, is_sold),
+            (token_id, nft_address, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri),
         )
 
 
@@ -103,7 +133,7 @@ def fetch_active_listing_rows() -> list[sqlite3.Row]:
     conn = get_connection()
     cursor = conn.execute(
         """
-        SELECT token_id, nft_address, price_eth, price_wei, seller_address, is_sold
+        SELECT token_id, nft_address, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri
         FROM listings
         WHERE is_sold = 0
         ORDER BY id DESC;
