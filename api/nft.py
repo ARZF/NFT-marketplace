@@ -29,6 +29,11 @@ async def upload_to_ipfs(
 
 @router.get("/key-status")
 def key_status() -> JSONResponse:
-    from nft_storage_client import NFT_STORAGE_API_KEY
-    present = bool(NFT_STORAGE_API_KEY)
-    return JSONResponse({"ok": True, "present": present})
+    from nft_storage_client import (
+        FILEBASE_ACCESS_KEY_ID,
+        FILEBASE_SECRET_ACCESS_KEY,
+        FILEBASE_BUCKET,
+    )
+
+    present = bool(FILEBASE_ACCESS_KEY_ID and FILEBASE_SECRET_ACCESS_KEY and FILEBASE_BUCKET)
+    return JSONResponse({"ok": True, "provider": "filebase", "present": present})

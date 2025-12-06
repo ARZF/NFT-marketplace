@@ -1,13 +1,9 @@
 import os
 import uuid
-import requests
 import boto3
 from botocore.client import Config
 
-NFT_STORAGE_API_KEY = (os.getenv("NFT_STORAGE_API_KEY") or "").strip()
-NFT_STORAGE_UPLOAD_URL = "https://api.nft.storage/upload"
-
-ASSET_STORAGE_PROVIDER = (os.getenv("ASSET_STORAGE_PROVIDER") or "nftstorage").strip().lower()
+# Filebase (S3-compatible) configuration — required for uploads
 FILEBASE_ENDPOINT = (os.getenv("FILEBASE_S3_ENDPOINT") or "https://s3.filebase.com").strip()
 FILEBASE_ACCESS_KEY_ID = (os.getenv("FILEBASE_ACCESS_KEY_ID") or "").strip()
 FILEBASE_SECRET_ACCESS_KEY = (os.getenv("FILEBASE_SECRET_ACCESS_KEY") or "").strip()
@@ -15,26 +11,11 @@ FILEBASE_BUCKET = (os.getenv("FILEBASE_BUCKET") or "").strip()
 FILEBASE_REGION = (os.getenv("FILEBASE_REGION") or "us-east-1").strip()
 
 
-def _upload_via_nft_storage(file_bytes: bytes, filename: str, mime_type: str) -> str:
-    if not NFT_STORAGE_API_KEY:
-        raise RuntimeError("NFT_STORAGE_API_KEY is not set")
-
-    headers = {"Authorization": f"Bearer {NFT_STORAGE_API_KEY}"}
-    files = {"file": (filename, file_bytes, mime_type)}
-
-    resp = requests.post(NFT_STORAGE_UPLOAD_URL, headers=headers, files=files, timeout=60)
-    if resp.status_code == 401:
-        raise RuntimeError("Unauthorized: Check NFT_STORAGE_API_KEY value")
-    resp.raise_for_status()
-    data = resp.json()
-    if not data.get("ok"):
-        raise RuntimeError(f"NFT.Storage upload failed: {data}")
-    return data["value"]["cid"]
-
-
 def _upload_via_filebase(file_bytes: bytes, filename: str, mime_type: str) -> str:
     if not (FILEBASE_ACCESS_KEY_ID and FILEBASE_SECRET_ACCESS_KEY and FILEBASE_BUCKET):
-        raise RuntimeError("Missing Filebase configuration: set FILEBASE_ACCESS_KEY_ID, FILEBASE_SECRET_ACCESS_KEY, FILEBASE_BUCKET")
+        raise RuntimeError(
+            "Missing Filebase configuration: set FILEBASE_ACCESS_KEY_ID, FILEBASE_SECRET_ACCESS_KEY, FILEBASE_BUCKET"
+        )
 
     key = filename or f"upload-{uuid.uuid4().hex}"
     session = boto3.session.Session()
@@ -57,6 +38,8 @@ def _upload_via_filebase(file_bytes: bytes, filename: str, mime_type: str) -> st
 
 
 def upload_file_to_nft_storage(file_bytes: bytes, filename: str, mime_type: str) -> str:
-    if ASSET_STORAGE_PROVIDER == "filebase":
-        return _upload_via_filebase(file_bytes, filename, mime_type)
-    return _upload_via_nft_storage(file_bytes, filename, mime_type)
+    """Upload file to Filebase and return IPFS CID.
+
+    The function name is kept for compatibility with existing imports.
+    """
+    return _upload_via_filebase(file_bytes, filename, mime_type)

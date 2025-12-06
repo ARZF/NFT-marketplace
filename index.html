@@ -283,6 +283,8 @@
                     return;
                 }
 
+                // Reload config in case it changed
+                await loadBackendConfig();
                 const valid = await validateConfig();
                 if (!valid) {
                     return;
@@ -433,20 +435,49 @@
                 await connectWallet();
                 if (!provider) return false;
             }
+
+            // Validate address format
+            try {
+                ethers.getAddress(NFT_CONTRACT_ADDRESS);
+                ethers.getAddress(MARKETPLACE_ADDRESS);
+            } catch (e) {
+                setMintStatus("Invalid contract address format.", "error");
+                return false;
+            }
+
+            // Check if contracts exist (this depends on the network the user is connected to)
             try {
                 const nftCode = await provider.getCode(NFT_CONTRACT_ADDRESS);
                 const marketCode = await provider.getCode(MARKETPLACE_ADDRESS);
+
+                // If no code found, warn but don't block (user might be on wrong network)
+                // The transaction will fail naturally if contracts don't exist
                 if (!nftCode || nftCode === "0x") {
-                    setMintStatus("No contract found at NFT_CONTRACT_ADDRESS.", "error");
-                    return false;
+                    const network = await provider.getNetwork();
+                    console.warn(
+                        `No contract found at NFT_CONTRACT_ADDRESS on ${network.name} (chainId: ${network.chainId}). ` +
+                        `Make sure you're connected to the correct network.`
+                    );
+                    // Don't return false - allow user to proceed, transaction will fail if wrong network
                 }
                 if (!marketCode || marketCode === "0x") {
-                    setMintStatus("No contract found at MARKETPLACE_ADDRESS.", "error");
-                    return false;
+                    const network = await provider.getNetwork();
+                    console.warn(
+                        `No contract found at MARKETPLACE_ADDRESS on ${network.name} (chainId: ${network.chainId}). ` +
+                        `Make sure you're connected to the correct network.`
+                    );
+                    // Don't return false - allow user to proceed, transaction will fail if wrong network
                 }
             } catch (e) {
-                setMintStatus("Failed to validate contract addresses.", "error");
-                return false;
+                // If getCode fails, it might be a network issue - still allow proceeding
+                // The actual transaction will fail if contracts don't exist anyway
+                console.warn("Could not verify contract existence:", e);
+                setMintStatus(
+                    "Warning: Could not verify contracts exist. Make sure you're on the correct network. " +
+                    "The transaction will fail if contracts don't exist.",
+                    "info"
+                );
+                // Don't return false - allow user to proceed, transaction will fail if wrong
             }
             return true;
         }
