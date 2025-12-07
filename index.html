@@ -220,7 +220,9 @@
 
                 // Use actual metadata if available, otherwise fallback to defaults
                 const tokenName = listing.name || `Token #${listing.token_id}`;
-                const imageUrl = listing.image_url || `https://picsum.photos/seed/${listing.token_id}/400/300`;
+                const imageUrl = listing.image_cid
+                    ? `https://level-blue-echidna.myfilebase.com/ipfs/${listing.image_cid}`
+                    : listing.image_url || `https://picsum.photos/seed/${listing.token_id}/400/300`;
 
                 template.querySelector('[data-field="title"]').textContent = tokenName;
                 template.querySelector('[data-field="address"]').textContent = `NFT: ${shortenAddress(listing.nft_address)}`;
