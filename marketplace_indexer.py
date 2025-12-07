@@ -163,6 +163,7 @@ def ipfs_to_https(ipfs_url: str) -> str:
 def fetch_ipfs_json(ipfs_url: str, timeout: int = 10) -> Optional[Dict]:
     """
     Fetch and parse JSON metadata from IPFS.
+    If content is not JSON, return None.
     """
     if not ipfs_url:
         return None
@@ -174,10 +175,18 @@ def fetch_ipfs_json(ipfs_url: str, timeout: int = 10) -> Optional[Dict]:
     try:
         response = requests.get(https_url, timeout=timeout)
         response.raise_for_status()
+
+        # Only try JSON if content-type is application/json
+        content_type = response.headers.get("content-type", "")
+        if "application/json" not in content_type:
+            logger.warning(f"IPFS content is not JSON: {https_url} (content-type={content_type})")
+            return None
+
         return response.json()
     except Exception as exc:
         logger.warning(f"Failed to fetch IPFS metadata from {https_url}: {exc}")
         return None
+
 
 
 def fetch_token_uri(w3: Web3, nft_address: str, token_id: int) -> Optional[str]:
