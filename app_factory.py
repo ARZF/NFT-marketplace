@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from api.nft import router as nft_router
 import os
+from pathlib import Path
 
 
 from marketplace_indexer import get_active_listings, run_indexer
@@ -25,15 +26,20 @@ def create_app() -> FastAPI:
     )
 
     # Serve the static frontend (index.html and any related assets)
-    app.mount("/static", StaticFiles(directory=".", html=False), name="static")
-
+    frontend_dist = Path(__file__).parent / "front-end" / "dist"
+    if frontend_dist.exists():
+        app.mount("/assets", StaticFiles(directory=str(frontend_dist / "assets")), name="assets")
     @app.get("/", include_in_schema=False)
     async def root_index() -> FileResponse:
         """
         Return the main HTML page so the Railway web URL shows the UI.
         """
+        frontend_index = Path(__file__).parent / "front-end" / "dist" / "index.html"
+        if frontend_index.exists():
+            return FileResponse(str(frontend_index))
+        # Fallback if dist doesn't exist yet
         return FileResponse("index.html")
-
+    
     @app.on_event("startup")
     async def startup_indexer() -> None:  # pragma: no cover - FastAPI lifecycle
         run_indexer()
