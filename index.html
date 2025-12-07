@@ -307,7 +307,11 @@
                     throw new Error("Unexpected response from backend");
                 }
 
-                const tokenURI = `ipfs://${result.image_cid}`;
+                if (!result.metadata_cid) {
+                    throw new Error("Metadata CID not returned from backend");
+                }
+                const tokenURI = `ipfs://${result.metadata_cid}`;
+
                 const priceEth = parseFloat(mintPriceInput.value);
                 if (!(priceEth > 0)) {
                     throw new Error("Enter a valid positive price");
