@@ -25,10 +25,21 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Serve the static frontend (index.html and any related assets)
-    frontend_dist = Path(__file__).parent / "nextjs" / "dist"
-    if frontend_dist.exists():
-        app.mount("/static", StaticFiles(directory=".", html=False), name="static")
+    # Serve the static frontend (index.html and any related assets).
+    # Prefer a Next.js static export/build if present (e.g. `nextjs/out` or `nextjs/dist`).
+    frontend_candidates = [
+        Path(__file__).parent / "nextjs" / "out",
+        Path(__file__).parent / "nextjs" / "dist",
+    ]
+    frontend_dist: Path | None = None
+    for candidate in frontend_candidates:
+        if candidate.exists():
+            frontend_dist = candidate
+            break
+
+    if frontend_dist is not None:
+        # Serve static files from the Next.js build directory under `/static`.
+        app.mount("/static", StaticFiles(directory=str(frontend_dist), html=True), name="static")
     
     @app.get("/", include_in_schema=False)
     async def root_index() -> FileResponse:
@@ -38,8 +49,14 @@ def create_app() -> FastAPI:
         # frontend_index = Path(__file__).parent / "front-end" / "dist" / "index.html"
         # if frontend_index.exists():
         #     return FileResponse(str(frontend_index))
-        # Fallback if dist doesn't exist yet
-        return FileResponse("index.html")
+        # If we have a Next.js build, return its index.html so the Next app is served.
+        if frontend_dist is not None:
+            frontend_index = frontend_dist / "index.html"
+            if frontend_index.exists():
+                return FileResponse(str(frontend_index))
+
+        # Fallback to repository root index.html (legacy):
+        return FileResponse(str(Path(__file__).parent / "index.html"))
     
     @app.on_event("startup")
     async def startup_indexer() -> None:  # pragma: no cover - FastAPI lifecycle
