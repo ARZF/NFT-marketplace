@@ -8,9 +8,118 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- UMD build exposes global `ethers` for browser usage -->
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <style>
+        /* OpenSea-like hover sidebar */
+        .os-sidebar {
+            position: fixed;
+            left: 16px;
+            top: 96px;
+            bottom: 40px;
+            width: 64px;
+            background: rgba(15, 23, 36, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.06);
+            border-radius: 12px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow: hidden;
+            z-index: 60;
+            transition: width 180ms ease;
+            backdrop-filter: blur(6px);
+        }
+
+        .os-sidebar:hover {
+            width: 220px;
+        }
+
+        .os-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            color: #cbd5e1;
+        }
+
+        .os-item svg {
+            flex: 0 0 20px;
+        }
+
+        .os-label {
+            white-space: nowrap;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateX(-6px);
+            transition: opacity 140ms ease, transform 140ms ease;
+        }
+
+        .os-sidebar:hover .os-label {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .os-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: #fff
+        }
+
+        @media (max-width:900px) {
+            .os-sidebar {
+                display: none
+            }
+        }
+    </style>
 </head>
 
 <body class="bg-slate-950 text-white min-h-screen">
+    <!-- Left hover-open sidebar -->
+    <nav class="os-sidebar" aria-label="Main navigation">
+        <a href="#" class="os-item" id="navExplore">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M21 10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">Explore</span>
+        </a>
+        <a href="#" class="os-item" id="navCollections">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <rect x="3" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
+                <rect x="14" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
+                <rect x="14" y="14" width="7" height="7" stroke-width="1.5" rx="1" />
+            </svg>
+            <span class="os-label font-medium">Collections</span>
+        </a>
+        <a href="#" class="os-item" id="navActivity">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M3 12h3l3 8 4-16 3 8h4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">Activity</span>
+        </a>
+        <a href="#" class="os-item" id="navFavorites">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path
+                    d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
+                    stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">Favorites</span>
+        </a>
+        <a href="#" class="os-item mt-auto" id="navSettings">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82L4.21 3.4A2 2 0 0 1 7.04.58l.06.06c.5.5 1.2.71 1.82.33.57-.35 1.24-.53 1.91-.53h.1c.67 0 1.34.18 1.91.53.62.38 1.32.17 1.82-.33l.06-.06A2 2 0 0 1 19.79 3.4l-.06.06c-.5.5-.71 1.2-.33 1.82.35.57.53 1.24.53 1.91v.1c0 .67-.18 1.34-.53 1.91-.38.62-.17 1.32.33 1.82l.06.06c.89.89.89 2.34 0 3.23z"
+                    stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">Settings</span>
+        </a>
+    </nav>
     <header class="bg-slate-900 border-b border-slate-800">
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <div class="flex items-center gap-4">
@@ -80,7 +189,7 @@
             </div>
         </section>
 
-        <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-8">
+        <section id="mintSection" class="bg-slate-900/70 border border-slate-800 rounded-3xl p-8 hidden">
             <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
                 <div>
                     <p class="text-sm uppercase text-slate-400 tracking-wide">
@@ -154,6 +263,22 @@
         </section>
     </main>
 
+    <!-- Owned NFTs Modal Page -->
+    <div id="ownedNFTsModal" class="hidden fixed inset-0 bg-black/80 z-40 overflow-y-auto">
+        <div class="max-w-6xl mx-auto px-6 py-12">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-3xl font-bold text-white">Your NFTs</h1>
+                <button id="closeOwnedModal" class="text-slate-400 hover:text-white text-2xl">✕</button>
+            </div>
+            <div id="ownedNFTsGrid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- Owned NFTs populated by JS -->
+            </div>
+            <div id="ownedEmptyState" class="hidden text-center text-slate-500 mt-16">
+                You don't own any NFTs yet.
+            </div>
+        </div>
+    </div>
+
     <template id="listingCardTemplate">
         <article class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
             <div class="h-48 rounded-xl bg-cover bg-center bg-slate-800" data-field="image"></div>
@@ -223,6 +348,11 @@
         const mintSubmitButton = document.getElementById("mintSubmitButton");
         const mintImageInput = document.getElementById("mintImage");
         const mintPriceInput = document.getElementById("mintPrice");
+        const mintSection = document.getElementById("mintSection");
+        const ownedNFTsModal = document.getElementById("ownedNFTsModal");
+        const ownedNFTsGrid = document.getElementById("ownedNFTsGrid");
+        const ownedEmptyState = document.getElementById("ownedEmptyState");
+        const closeOwnedModal = document.getElementById("closeOwnedModal");
 
         let provider = null;
         let signer = null;
@@ -230,6 +360,8 @@
         let lastListings = [];
         walletButton.addEventListener("click", handleWalletButtonClick);
         viewOwnedBtn?.addEventListener("click", viewOwnedNFTs);
+        closeOwnedModal?.addEventListener("click", () => ownedNFTsModal?.classList.add('hidden'));
+        ownedNFTsModal?.addEventListener("click", (e) => { if (e.target === ownedNFTsModal) ownedNFTsModal.classList.add('hidden'); });
         disconnectBtn?.addEventListener("click", disconnectWallet);
         showAllBtn?.addEventListener("click", () => { renderListings(lastListings); walletMenu?.classList.add('hidden'); });
         mintForm?.addEventListener("submit", handleMintForm);
@@ -247,6 +379,8 @@
                 walletButton.textContent = shortenAddress(userAddress);
                 walletButton.classList.remove("bg-slate-100", "text-slate-900");
                 walletButton.classList.add("bg-emerald-400", "text-slate-900");
+                // show mint form when wallet connected
+                mintSection?.classList.remove('hidden');
                 // hide menu on connect (will toggle when clicking)
                 walletMenu?.classList.add('hidden');
             } catch (error) {
@@ -272,6 +406,8 @@
             walletButton.classList.remove('bg-emerald-400');
             walletButton.classList.add('bg-slate-100', 'text-slate-900');
             walletMenu?.classList.add('hidden');
+            // hide mint form when disconnected
+            mintSection?.classList.add('hidden');
             // restore full listing view
             renderListings(lastListings);
         }
@@ -283,8 +419,37 @@
             }
             const addr = userAddress.toLowerCase();
             const owned = lastListings.filter(l => (l.seller_address && l.seller_address.toLowerCase() === addr) || (l.owner && l.owner.toLowerCase() === addr));
-            renderListings(owned);
+            renderOwnedNFTsModal(owned);
             walletMenu?.classList.add('hidden');
+        }
+
+        function renderOwnedNFTsModal(listings) {
+            ownedNFTsGrid.innerHTML = "";
+            if (!listings.length) {
+                ownedEmptyState.classList.remove('hidden');
+                ownedNFTsGrid.classList.add('hidden');
+            } else {
+                ownedEmptyState.classList.add('hidden');
+                ownedNFTsGrid.classList.remove('hidden');
+                listings.forEach((listing) => {
+                    const template = document
+                        .getElementById("listingCardTemplate")
+                        .content.cloneNode(true);
+                    const tokenName = listing.name || `Token #${listing.token_id}`;
+                    const imageUrl = listing.image_cid
+                        ? `https://level-blue-echidna.myfilebase.com/ipfs/${listing.image_cid}`
+                        : listing.image_url || `https://picsum.photos/seed/${listing.token_id}/400/300`;
+                    template.querySelector('[data-field="title"]').textContent = tokenName;
+                    template.querySelector('[data-field="address"]').textContent = `NFT: ${shortenAddress(listing.nft_address)}`;
+                    template.querySelector('[data-field="price"]').textContent = `${listing.price_eth} ETH`;
+                    template.querySelector('[data-field="seller"]').textContent = `Seller: ${shortenAddress(listing.seller_address)}`;
+                    template.querySelector('[data-field="image"]').style.backgroundImage = `url(${imageUrl})`;
+                    const buyButton = template.querySelector(".buy-btn");
+                    buyButton.addEventListener("click", () => handleBuy(listing, buyButton));
+                    ownedNFTsGrid.appendChild(template);
+                });
+            }
+            ownedNFTsModal.classList.remove('hidden');
         }
 
         async function fetchListings() {
