@@ -26,9 +26,9 @@ def create_app() -> FastAPI:
     )
 
     # Serve the static frontend (index.html and any related assets)
-    # frontend_dist = Path(__file__).parent / "front-end" / "dist"
-    # if frontend_dist.exists():
-    app.mount("/static", StaticFiles(directory=".", html=False), name="static")
+    frontend_dist = Path(__file__).parent / "nextjs" / "dist"
+    if frontend_dist.exists():
+        app.mount("/static", StaticFiles(directory=".", html=False), name="static")
     
     @app.get("/", include_in_schema=False)
     async def root_index() -> FileResponse:
