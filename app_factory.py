@@ -83,6 +83,13 @@ def create_app() -> FastAPI:
             "assetStorageProvider": os.getenv("ASSET_STORAGE_PROVIDER", "nftstorage").strip().lower(),
         }
 
+    @app.get("/mint_new_nft", include_in_schema=False)
+    async def mint_form_page() -> FileResponse:
+        """
+        Return the standalone mint form page.
+        """
+        return FileResponse(str(Path(__file__).parent / "mint.html"))
+
     app.include_router(nft_router)
     
     return app

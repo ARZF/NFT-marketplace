@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mint NFT - NFT Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen">
+    <header class="bg-slate-900 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center font-bold text-slate-900">
+                    N</div>
+                <div>
+                    <div class="text-lg font-semibold">NFT Marketplace</div>
+                    <div class="text-xs text-slate-400">Mint & Trade Digital Assets</div>
+                </div>
+            </div>
+            <a href="/"
+                class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-200 bg-slate-800 border border-slate-700 hover:bg-slate-700">←
+                Back to Home</a>
+        </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto px-6 py-12">
+        <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-8">
+            <div class="mb-6">
+                <p class="text-sm uppercase text-slate-400 tracking-wide">Creator Panel</p>
+                <h1 class="text-3xl font-semibold text-white">Mint a New NFT</h1>
+            </div>
+            <form id="mintForm" class="space-y-6">
+                <div>
+                    <label for="mintName" class="block text-sm font-medium text-slate-300 mb-2">Name</label>
+                    <input id="mintName" name="name" type="text" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        placeholder="e.g. Celestial Tiger #1" />
+                </div>
+                <div>
+                    <label for="mintDescription"
+                        class="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                    <textarea id="mintDescription" name="description" rows="3"
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        placeholder="Optional story for this NFT"></textarea>
+                </div>
+                <div>
+                    <label for="mintPrice" class="block text-sm font-medium text-slate-300 mb-2">Price (ETH)</label>
+                    <input id="mintPrice" name="price" type="number" step="0.000000000000000001" min="0" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        placeholder="e.g. 0.1" />
+                </div>
+                <div>
+                    <label for="mintImage" class="block text-sm font-medium text-slate-300 mb-2">Artwork</label>
+                    <input id="mintImage" name="file" type="file" accept="image/*" required
+                        class="w-full rounded-xl border border-dashed border-slate-700 bg-slate-900 px-4 py-4 text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-400 file:px-4 file:py-2 file:text-slate-900" />
+                </div>
+                <button type="submit"
+                    class="w-full px-6 py-3 rounded-xl bg-emerald-400 text-slate-900 font-semibold hover:bg-emerald-300 transition disabled:opacity-60"
+                    id="mintSubmitButton">
+                    Upload & Prepare Metadata
+                </button>
+            </form>
+            <div id="mintResult" class="mt-6 text-sm text-slate-300 hidden"></div>
+        </section>
+
+        <div class="mt-8 text-center text-sm text-slate-400">
+            <p>Connect your wallet to mint and list your NFT on the marketplace.</p>
+        </div>
+    </main>
+</body>
+
+</html>
