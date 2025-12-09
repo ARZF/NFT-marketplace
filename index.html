@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>بازارچه توکن‌های غیرمثلی (NFT) پایتون</title>
+    <title>بازارچه (NFT) </title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
     <style>
-        /* OpenSea-like hover sidebar */
+        /* OpenSea-like hover sidebar (تنظیمات برای راست به چپ) */
         .os-sidebar {
             position: fixed;
             /* تغییر از left به right */
@@ -76,7 +76,7 @@
 </head>
 
 <body class="bg-slate-950 text-white min-h-screen font-sans">
-    <nav class="os-sidebar" aria-label="Main navigation">
+    <nav class="os-sidebar" aria-label="منوی اصلی">
         <a href="#" class="os-item" id="navExplore">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor">
@@ -163,7 +163,7 @@
                         class="ml-2 px-4 py-2 rounded-md bg-slate-100 text-slate-900 font-semibold hover:bg-white transition">اتصال
                         کیف پول</button>
                     <div id="walletMenu"
-                        class="hidden absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg p-2 z-50">
+                        class="hidden absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg p-2 z-50 text-right">
                         <button id="viewOwnedBtn" class="w-full text-right px-3 py-2 rounded hover:bg-slate-700">مشاهده
                             NFTهای من</button>
                         <button id="showAllBtn" class="w-full text-right px-3 py-2 rounded hover:bg-slate-700">نمایش
@@ -199,6 +199,41 @@
                 </div>
             </div>
         </section>
+
+        <section id="mintSection" class="bg-slate-900/70 border border-slate-800 rounded-3xl p-8 hidden text-right">
+            <h2 class="text-3xl font-semibold mb-6">NFT خود را ضرب کنید (Mint)</h2>
+            <form id="mintForm" class="space-y-4 max-w-lg mr-auto">
+                <div class="text-right">
+                    <label for="mintTitle" class="block text-sm font-medium text-slate-300 mb-1">عنوان اثر</label>
+                    <input type="text" id="mintTitle" name="title" required
+                        class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500"
+                        placeholder="عنوان جذاب برای NFT شما" />
+                </div>
+                <div class="text-right">
+                    <label for="mintDescription" class="block text-sm font-medium text-slate-300 mb-1">توضیحات</label>
+                    <textarea id="mintDescription" name="description" rows="3"
+                        class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500"
+                        placeholder="توضیحات کامل در مورد اثر هنری"></textarea>
+                </div>
+                <div class="text-right">
+                    <label for="mintImage" class="block text-sm font-medium text-slate-300 mb-1">فایل تصویر</label>
+                    <input type="file" id="mintImage" name="image" accept="image/*" required
+                        class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-500 file:text-slate-900 hover:file:bg-emerald-400 cursor-pointer" />
+                </div>
+                <div class="text-right">
+                    <label for="mintPrice" class="block text-sm font-medium text-slate-300 mb-1">قیمت فروش (ETH)</label>
+                    <input type="number" id="mintPrice" name="price_eth" step="0.001" min="0" required
+                        class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500"
+                        placeholder="مثلاً 0.05" />
+                </div>
+                <div id="mintResult" class="p-3 rounded-lg text-sm hidden text-right"></div>
+                <button type="submit" id="mintSubmitButton"
+                    class="w-full px-5 py-3 rounded-lg bg-violet-600 text-white font-semibold hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                    ضرب و لیست کردن NFT
+                </button>
+            </form>
+        </section>
+
         <section>
             <div class="flex items-end justify-between gap-4 flex-wrap mb-8 flex-row-reverse">
                 <div class="text-right">
@@ -209,6 +244,10 @@
                         آثار فعال برای فروش
                     </h2>
                 </div>
+                <button onclick="fetchListings()"
+                    class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-slate-700 hover:bg-slate-600">
+                    بازخوانی لیست‌ها
+                </button>
             </div>
             <div id="listingsGrid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             </div>
@@ -257,20 +296,85 @@
     </template>
 
     <script>
-        //... کد جاوا اسکریپت بدون تغییر در منطق
-        // تغییرات متون داخل جاوا اسکریپت:
+        // توجه: این بخش جاوا اسکریپت دست‌نخورده باقی می‌ماند تا عملکرد صحیح تضمین شود.
 
-        // ...
+        // Local API fallback
+        const LOCAL_API_FALLBACK = "http://localhost:8000";
+        const params = new URLSearchParams(window.location.search);
+        const manualApiOverride = params.get("api");
+        const isLocalhost =
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1";
+
+        const defaultApiBase = isLocalhost ? LOCAL_API_FALLBACK : window.location.origin;
+        const API_BASE = (manualApiOverride ?? defaultApiBase).replace(/\/$/, "");
+        const API_LISTINGS_URL = `${API_BASE}/api/listings`;
+        const API_NFT_UPLOAD_URL = `${API_BASE}/api/nft/upload`;
+        const API_REINDEX_URL = `${API_BASE}/api/reindex`;
+
+        let MARKETPLACE_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
+        let NFT_CONTRACT_ADDRESS = "0xDB9d9Bb58dB6774bbD72a9cBefb483F03Db1A5Fe";
+        const MARKETPLACE_ABI = [
+            "function buyItem(address nftAddress, uint256 tokenId) payable",
+            "function listItem(address nftAddress, uint256 tokenId, uint256 price)",
+        ];
+        const NFT_ABI = [
+            "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+            "function mint(string uri) returns (uint256)",
+            "function approve(address to, uint256 tokenId)",
+            "function setApprovalForAll(address operator, bool approved)",
+            "function isApprovedForAll(address owner, address operator) view returns (bool)",
+        ];
+        const ERC721_TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
+
+        loadBackendConfig();
+
+        const listingsGrid = document.getElementById("listingsGrid");
+        const emptyState = document.getElementById("emptyState");
+        const walletButton = document.getElementById("walletButton");
+        const walletMenu = document.getElementById("walletMenu");
+        const viewOwnedBtn = document.getElementById("viewOwnedBtn");
+        const disconnectBtn = document.getElementById("disconnectBtn");
+        const showAllBtn = document.getElementById("showAllBtn");
+        const mintForm = document.getElementById("mintForm");
+        const mintResult = document.getElementById("mintResult");
+        const mintSubmitButton = document.getElementById("mintSubmitButton");
+        const mintImageInput = document.getElementById("mintImage");
+        const mintPriceInput = document.getElementById("mintPrice");
+        const mintSection = document.getElementById("mintSection");
+        const ownedNFTsModal = document.getElementById("ownedNFTsModal");
+        const ownedNFTsGrid = document.getElementById("ownedNFTsGrid");
+        const ownedEmptyState = document.getElementById("ownedEmptyState");
+        const closeOwnedModal = document.getElementById("closeOwnedModal");
+
+        let provider = null;
+        let signer = null;
+        let userAddress = null;
+        let lastListings = [];
+        walletButton.addEventListener("click", handleWalletButtonClick);
+        viewOwnedBtn?.addEventListener("click", viewOwnedNFTs);
+        closeOwnedModal?.addEventListener("click", () => ownedNFTsModal?.classList.add('hidden'));
+        ownedNFTsModal?.addEventListener("click", (e) => { if (e.target === ownedNFTsModal) ownedNFTsModal.classList.add('hidden'); });
+        disconnectBtn?.addEventListener("click", disconnectWallet);
+        showAllBtn?.addEventListener("click", () => { renderListings(lastListings); walletMenu?.classList.add('hidden'); });
+        mintForm?.addEventListener("submit", handleMintForm);
+
         async function connectWallet() {
             if (!window.ethereum) {
                 alert("MetaMask (یا یک کیف پول EIP-1193 دیگر) مورد نیاز است.");
                 return;
             }
             try {
-                // ...
+                provider = new ethers.BrowserProvider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                userAddress = await signer.getAddress();
                 walletButton.textContent = shortenAddress(userAddress);
-                // ...
-                // hide menu on connect (will toggle when clicking)
+                walletButton.classList.remove("bg-slate-100", "text-slate-900");
+                walletButton.classList.add("bg-emerald-400", "text-slate-900");
+                // نمایش فرم ضرب NFT هنگام اتصال کیف پول
+                mintSection?.classList.remove('hidden');
+                // مخفی کردن منو هنگام اتصال (با کلیک دوباره باز و بسته می‌شود)
                 walletMenu?.classList.add('hidden');
             } catch (error) {
                 console.error("Wallet connection failed", error);
@@ -278,11 +382,27 @@
             }
         }
 
-        // ...
+        function handleWalletButtonClick() {
+            // اگر متصل است، منوی کشویی را باز و بسته کن؛ در غیر این صورت اتصال را شروع کن
+            if (signer && userAddress) {
+                walletMenu?.classList.toggle('hidden');
+            } else {
+                connectWallet();
+            }
+        }
+
         function disconnectWallet() {
-            // ...
+            provider = null;
+            signer = null;
+            userAddress = null;
             walletButton.textContent = 'اتصال کیف پول';
-            // ...
+            walletButton.classList.remove('bg-emerald-400');
+            walletButton.classList.add('bg-slate-100', 'text-slate-900');
+            walletMenu?.classList.add('hidden');
+            // مخفی کردن فرم ضرب NFT هنگام قطع اتصال
+            mintSection?.classList.add('hidden');
+            // بازگرداندن به نمای کامل لیست
+            renderListings(lastListings);
         }
 
         function viewOwnedNFTs() {
@@ -290,108 +410,278 @@
                 alert('لطفاً ابتدا کیف پول خود را متصل کنید.');
                 return;
             }
-            // ...
+            const addr = userAddress.toLowerCase();
+            const owned = lastListings.filter(l => (l.seller_address && l.seller_address.toLowerCase() === addr) || (l.owner && l.owner.toLowerCase() === addr));
+            renderOwnedNFTsModal(owned);
+            walletMenu?.classList.add('hidden');
         }
 
         function renderOwnedNFTsModal(listings) {
-            //...
+            ownedNFTsGrid.innerHTML = "";
             if (!listings.length) {
                 ownedEmptyState.textContent = "شما هنوز NFT‌ای ندارید."; // ترجمه متن خالی
                 ownedEmptyState.classList.remove('hidden');
-                // ...
+                ownedNFTsGrid.classList.add('hidden');
             } else {
-                // ...
+                ownedEmptyState.classList.add('hidden');
+                ownedNFTsGrid.classList.remove('hidden');
+                listings.forEach((listing) => {
+                    const template = document
+                        .getElementById("listingCardTemplate")
+                        .content.cloneNode(true);
+                    const tokenName = listing.name || `توکن #${listing.token_id}`;
+                    const imageUrl = listing.image_cid
+                        ? `https://level-blue-echidna.myfilebase.com/ipfs/${listing.image_cid}`
+                        : listing.image_url || `https://picsum.photos/seed/${listing.token_id}/400/300`;
+                    template.querySelector('[data-field="title"]').textContent = tokenName;
+                    template.querySelector('[data-field="address"]').textContent = `NFT: ${shortenAddress(listing.nft_address)}`;
+                    template.querySelector('[data-field="price"]').textContent = `${listing.price_eth} ETH`;
+                    template.querySelector('[data-field="seller"]').textContent = `فروشنده: ${shortenAddress(listing.seller_address)}`;
+                    template.querySelector('[data-field="image"]').style.backgroundImage = `url(${imageUrl})`;
+                    const buyButton = template.querySelector(".buy-btn");
+                    buyButton.addEventListener("click", () => handleBuy(listing, buyButton));
+                    ownedNFTsGrid.appendChild(template);
+                });
             }
-            // ...
+            ownedNFTsModal.classList.remove('hidden');
         }
 
         async function fetchListings() {
             try {
-                // ...
+                const response = await fetch(API_LISTINGS_URL);
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}`);
+                }
+                const listings = await response.json();
+                lastListings = listings || [];
+                renderListings(lastListings);
             } catch (error) {
                 console.error("Failed to fetch listings", error);
-                emptyState.textContent = "قادر به بارگیری NFT‌ها نیست. بک‌اند را بررسی کنید."; // ترجمه متن خطا
+                emptyState.textContent = "قادر به بارگیری NFT‌ها نیست. بک‌اند را بررسی کنید.";
                 emptyState.classList.remove("hidden");
             }
         }
 
         function renderListings(listings) {
-            // ...
+            listingsGrid.innerHTML = "";
             if (!listings.length) {
-                emptyState.textContent = "هیچ NFT فعالی برای فروش پیدا نشد."; // ترجمه متن خالی
+                emptyState.textContent = "هیچ NFT فعالی برای فروش پیدا نشد.";
                 emptyState.classList.remove("hidden");
                 return;
             }
-            // ...
+            emptyState.classList.add("hidden");
             listings.forEach((listing) => {
-                // ...
+                const template = document
+                    .getElementById("listingCardTemplate")
+                    .content.cloneNode(true);
+
+                const tokenName = listing.name || `توکن #${listing.token_id}`;
+                const imageUrl = listing.image_cid
+                    ? `https://level-blue-echidna.myfilebase.com/ipfs/${listing.image_cid}`
+                    : listing.image_url || `https://picsum.photos/seed/${listing.token_id}/400/300`;
+
+                template.querySelector('[data-field="title"]').textContent = tokenName;
+                template.querySelector('[data-field="address"]').textContent = `NFT: ${shortenAddress(listing.nft_address)}`;
+                template.querySelector('[data-field="price"]').textContent = `${listing.price_eth} ETH`;
+                template.querySelector('[data-field="seller"]').textContent = `فروشنده: ${shortenAddress(
+                    listing.seller_address
+                )}`;
+                template.querySelector('[data-field="image"]').style.backgroundImage = `url(${imageUrl})`;
+
                 const buyButton = template.querySelector(".buy-btn");
-                buyButton.textContent = "خرید NFT"; // ترجمه
-                // ...
+                buyButton.textContent = "خرید NFT";
+                buyButton.addEventListener("click", () => handleBuy(listing, buyButton));
+
+                listingsGrid.appendChild(template);
             });
         }
 
         async function handleBuy(listing, button) {
             try {
-                // ...
-                button.textContent = "تأیید در کیف پول..."; // ترجمه
-                // ...
-                button.textContent = "در انتظار بلاک..."; // ترجمه
+                if (!signer) {
+                    await connectWallet();
+                }
+                if (!signer) {
+                    return;
+                }
+                const contract = new ethers.Contract(MARKETPLACE_ADDRESS, MARKETPLACE_ABI, signer);
+                button.disabled = true;
+                button.textContent = "تأیید در کیف پول...";
+                const tx = await contract.buyItem(listing.nft_address, listing.token_id, {
+                    value: listing.price_wei,
+                });
+                button.textContent = "در انتظار بلاک...";
                 await tx.wait();
-                button.textContent = "فروخته شد"; // ترجمه
-                // ...
-                alert(`موفقیت‌آمیز بود! هش تراکنش: ${tx.hash}`); // ترجمه
+                button.textContent = "فروخته شد";
+                button.classList.remove("bg-emerald-400", "hover:bg-emerald-300");
+                button.classList.add("bg-slate-700", "text-slate-400");
+                alert(`موفقیت‌آمیز بود! هش تراکنش: ${tx.hash}`);
             } catch (error) {
                 console.error("Transaction failed", error);
-                alert(error?.data?.message ?? error.message ?? "تراکنش رد شد"); // ترجمه
+                alert(error?.data?.message ?? error.message ?? "تراکنش رد شد");
                 button.disabled = false;
-                button.textContent = "خرید NFT"; // ترجمه
+                button.textContent = "خرید NFT";
             }
         }
 
         async function handleMintForm(event) {
             event.preventDefault();
             if (!mintImageInput?.files?.length) {
-                setMintStatus("لطفاً یک فایل تصویری برای آپلود انتخاب کنید.", "error"); // ترجمه
+                setMintStatus("لطفاً یک فایل تصویری برای آپلود انتخاب کنید.", "error");
                 return;
             }
-            // ...
+            const formData = new FormData(mintForm);
+            formData.set("file", mintImageInput.files[0]);
+
             try {
-                // ...
                 if (!signer) {
-                    setMintStatus("اتصال کیف پول مورد نیاز است.", "error"); // ترجمه
+                    await connectWallet();
+                }
+                if (!signer) {
+                    setMintStatus("اتصال کیف پول مورد نیاز است.", "error");
                     return;
                 }
-                // ...
-                mintSubmitButton.textContent = "در حال آپلود..."; // ترجمه
-                setMintStatus("در حال آپلود اثر هنری به NFT.Storage...", "info"); // ترجمه
-                // ...
-                if (!result.metadata_cid) {
-                    throw new Error("CID فراداده از بک‌اند بازگردانده نشد"); // ترجمه
-                }
-                // ...
-                if (!(priceEth > 0)) {
-                    throw new Error("یک قیمت مثبت معتبر وارد کنید"); // ترجمه
+
+                await loadBackendConfig();
+                const valid = await validateConfig();
+                if (!valid) {
+                    return;
                 }
 
-                setMintStatus("در حال ضرب NFT در شبکه...", "info"); // ترجمه
-                // ...
-                setMintStatus("در حال تأیید بازارچه...", "info"); // ترجمه
-                // ...
-                setMintStatus("در حال لیست کردن آیتم...", "info"); // ترجمه
-                // ...
-                setMintStatus("NFT با موفقیت ایجاد و برای فروش لیست شد!", "success"); // ترجمه
-                // ...
-                // ...
+                mintSubmitButton.disabled = true;
+                mintSubmitButton.textContent = "در حال آپلود...";
+                setMintStatus("در حال آپلود اثر هنری به NFT.Storage...", "info");
+
+                const response = await fetch(API_NFT_UPLOAD_URL, {
+                    method: "POST",
+                    body: formData,
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `آپلود ناموفق بود: ${response.statusText}`);
+                }
+                const data = await response.json();
+                const metadata_cid = data.metadata_cid;
+                const tokenURI = `ipfs://${metadata_cid}`;
+
+                setMintStatus(`متا دیتا ذخیره شد. CID: ${metadata_cid}. در حال ضرب...`, "info");
+
+                // 1. ضرب NFT
+                const nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
+                mintSubmitButton.textContent = "تأیید ضرب NFT...";
+                const mintTx = await nftContract.mint(tokenURI);
+                setMintStatus("در انتظار تأیید ضرب...", "info");
+                const mintReceipt = await mintTx.wait();
+                const transferEvent = mintReceipt.logs.find(log => log.topics[0] === ERC721_TRANSFER_TOPIC);
+                const tokenId = transferEvent ? ethers.toBigInt(transferEvent.topics[3]).toString() : null;
+
+                if (!tokenId) {
+                    throw new Error("توکن ID پس از ضرب پیدا نشد.");
+                }
+
+                setMintStatus(`NFT ضرب شد! توکن ID: ${tokenId}. در حال تأیید برای بازارچه...`, "info");
+
+                // 2. تأیید بازارچه برای انتقال
+                mintSubmitButton.textContent = "تأیید بازارچه...";
+                const approvalTx = await nftContract.approve(MARKETPLACE_ADDRESS, tokenId);
+                setMintStatus("در انتظار تأیید بازارچه...", "info");
+                await approvalTx.wait();
+
+                setMintStatus("تأیید شد. در حال لیست کردن NFT...", "info");
+
+                // 3. لیست کردن در بازارچه
+                const marketplaceContract = new ethers.Contract(MARKETPLACE_ADDRESS, MARKETPLACE_ABI, signer);
+                const priceEth = mintPriceInput.value;
+                const priceWei = ethers.parseEther(priceEth);
+                mintSubmitButton.textContent = "تأیید لیست کردن...";
+                const listTx = await marketplaceContract.listItem(NFT_CONTRACT_ADDRESS, tokenId, priceWei);
+                setMintStatus("در انتظار تأیید لیست کردن...", "info");
+                await listTx.wait();
+
+                setMintStatus(`موفقیت‌آمیز! NFT شما لیست شد. در حال بازخوانی...`, "success");
+                await fetchListings();
+
             } catch (error) {
-                // ...
-                setMintStatus(error.message, "error");
+                console.error("Mint/Listing failed", error);
+                setMintStatus(error?.data?.message ?? error.message ?? "عملیات ضرب/لیست کردن رد شد.", "error");
             } finally {
                 mintSubmitButton.disabled = false;
-                mintSubmitButton.textContent = "آپلود و آماده‌سازی فراداده"; // ترجمه
+                mintSubmitButton.textContent = "ضرب و لیست کردن NFT";
             }
         }
-        //... بقیه توابع
+
+        function setMintStatus(message, type) {
+            mintResult.textContent = message;
+            mintResult.classList.remove('hidden', 'bg-red-900/50', 'bg-green-900/50', 'bg-blue-900/50', 'text-red-400', 'text-green-400', 'text-blue-400');
+            if (type === "error") {
+                mintResult.classList.add('bg-red-900/50', 'text-red-400');
+            } else if (type === "success") {
+                mintResult.classList.add('bg-green-900/50', 'text-green-400');
+            } else {
+                mintResult.classList.add('bg-blue-900/50', 'text-blue-400');
+            }
+        }
+
+        function shortenAddress(address) {
+            if (!address) return "آدرس نامعتبر";
+            return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+        }
+
+        async function loadBackendConfig() {
+            try {
+                const response = await fetch(`${API_BASE}/api/config`);
+                if (response.ok) {
+                    const config = await response.json();
+                    if (config.marketplace_address) {
+                        MARKETPLACE_ADDRESS = config.marketplace_address;
+                    }
+                    if (config.nft_contract_address) {
+                        NFT_CONTRACT_ADDRESS = config.nft_contract_address;
+                    }
+                    // این تابع می تواند اطلاعات پیکربندی بیشتری را در آینده بارگیری کند
+                }
+            } catch (error) {
+                console.warn("Failed to load backend config, using defaults:", error);
+            }
+        }
+
+        async function validateConfig() {
+            if (!NFT_CONTRACT_ADDRESS) {
+                setMintStatus("آدرس قرارداد NFT پیدا نشد. لطفا بک‌اند را بررسی کنید.", "error");
+                return false;
+            }
+            if (!MARKETPLACE_ADDRESS) {
+                setMintStatus("آدرس قرارداد بازارچه پیدا نشد. لطفا بک‌اند را بررسی کنید.", "error");
+                return false;
+            }
+
+            try {
+                // اطمینان حاصل کنید که آدرس‌ها کد واقعی دارند (مستقر شده‌اند)
+                const nftCode = await provider.getCode(NFT_CONTRACT_ADDRESS);
+                const marketplaceCode = await provider.getCode(MARKETPLACE_ADDRESS);
+
+                if (nftCode === '0x') {
+                    setMintStatus(`قرارداد NFT در آدرس ${NFT_CONTRACT_ADDRESS} مستقر نشده است.`, "error");
+                    return false;
+                }
+                if (marketplaceCode === '0x') {
+                    setMintStatus(`قرارداد بازارچه در آدرس ${MARKETPLACE_ADDRESS} مستقر نشده است.`, "error");
+                    return false;
+                }
+            } catch (e) {
+                setMintStatus("بررسی استقرار قرارداد ناموفق بود. آیا شبکه کیف پول شما با بک‌اند مطابقت دارد؟", "error");
+                console.error("Validation error:", e);
+                return false;
+            }
+
+            return true;
+        }
+
+        // فراخوانی اولیه
+        fetchListings();
+        if (window.ethereum?.isConnected()) {
+            connectWallet();
+        }
     </script>
 </body>
 
