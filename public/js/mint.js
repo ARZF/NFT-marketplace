@@ -9,6 +9,7 @@ const defaultApiBase = isLocalhost ? LOCAL_API_FALLBACK : window.location.origin
 const API_BASE = (manualApiOverride ?? defaultApiBase).replace(/\/$/, "");
 const API_NFT_UPLOAD_URL = `${API_BASE}/api/nft/upload`;
 const API_CONFIG_URL = `${API_BASE}/api/config`;
+const API_REINDEX_URL = `${API_BASE}/api/reindex`;
 
 let MARKETPLACE_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
 let NFT_CONTRACT_ADDRESS = "0xDB9d9Bb58dB6774bbD72a9cBefb483F03Db1A5Fe";
@@ -355,6 +356,9 @@ async function handleMintForm(event) {
             priceWei
         );
         await txList.wait();
+
+        // Trigger backend reindex so homepage listings update
+        await fetch(API_REINDEX_URL, { method: "POST" }).catch(() => { });
 
         const metadataPreview = JSON.stringify(result.metadata, null, 2);
         showNotification(
