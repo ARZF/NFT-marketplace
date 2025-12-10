@@ -1,0 +1,74 @@
+        /* Adding custom spinner styles */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #7c4dff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+          /* OpenSea-like hover sidebar */
+        .os-sidebar {
+            position: fixed;
+            left: 16px;
+            top: 96px;
+            bottom: 40px;
+            width: 64px;
+            background: rgba(15, 23, 36, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.06);
+            border-radius: 12px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow: hidden;
+            z-index: 60;
+            transition: width 180ms ease;
+            backdrop-filter: blur(6px);
+        }
+
+        .os-sidebar:hover {
+            width: 220px;
+        }
+
+        .os-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 10px;
+            color: #cbd5e1;
+        }
+
+        .os-item svg {
+            flex: 0 0 20px;
+        }
+
+        .os-label {
+            white-space: nowrap;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateX(-6px);
+            transition: opacity 140ms ease, transform 140ms ease;
+        }
+
+        .os-sidebar:hover .os-label {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .os-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: #fff
+        }
+
+        @media (max-width:900px) {
+            .os-sidebar {
+                display: none
+            }
+        }

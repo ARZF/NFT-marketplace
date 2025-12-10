@@ -46,10 +46,7 @@ def create_app() -> FastAPI:
         """
         Return the main HTML page so the Railway web URL shows the UI.
         """
-        # frontend_index = Path(__file__).parent / "front-end" / "dist" / "index.html"
-        # if frontend_index.exists():
-        #     return FileResponse(str(frontend_index))
-        # If we have a Next.js build, return its index.html so the Next app is served.
+
         if frontend_dist is not None:
             frontend_index = frontend_dist / "index.html"
             if frontend_index.exists():
@@ -57,6 +54,11 @@ def create_app() -> FastAPI:
 
         # Fallback to repository root index.html (legacy):
         return FileResponse(str(Path(__file__).parent / "index.html"))
+
+    public_dir = Path(__file__).parent / "public"
+    if public_dir.exists():
+        app.mount("/public", StaticFiles(directory=str(public_dir)), name="public")
+
     
     @app.on_event("startup")
     async def startup_indexer() -> None:  # pragma: no cover - FastAPI lifecycle
@@ -83,13 +85,28 @@ def create_app() -> FastAPI:
             "assetStorageProvider": os.getenv("ASSET_STORAGE_PROVIDER", "nftstorage").strip().lower(),
         }
 
-    @app.get("/mint_new_nft", include_in_schema=False)
+    @app.get("/mint.html", include_in_schema=False)
     async def mint_form_page() -> FileResponse:
         """
         Return the standalone mint form page.
         """
         return FileResponse(str(Path(__file__).parent / "mint.html"))
 
+    @app.get("/about-us.html", include_in_schema=False)
+    async def about_us_page() -> FileResponse:
+        """
+        Return the standalone about us page.
+        """
+        return FileResponse(str(Path(__file__).parent / "about-us.html"))
+
+    @app.get("/contact-us.html", include_in_schema=False)
+    async def contact_us_page() -> FileResponse:
+        """
+        Return the standalone contact us page.
+        """
+        return FileResponse(str(Path(__file__).parent / "contact-us.html"))
+
+    
     app.include_router(nft_router)
     
     return app
