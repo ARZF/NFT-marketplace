@@ -106,6 +106,12 @@ def create_app() -> FastAPI:
         """
         return FileResponse(str(Path(__file__).parent / "contact-us.html"))
 
+    @app.get("/nft-detail.html", include_in_schema=False)
+    async def nft_detail_page() -> FileResponse:
+        """
+        Return the NFT detail page.
+        """
+        return FileResponse(str(Path(__file__).parent / "nft-detail.html"))
     
     app.include_router(nft_router)
     

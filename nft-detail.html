@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>جزئیات NFT - مارکت NFT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="public/css/globals.css" />
+    <link rel="stylesheet" href="public/css/index.css" />
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen">
+    <!-- Sidebar -->
+    <nav class="os-sidebar" aria-label="ناوبری اصلی">
+        <a href="/" class="os-item" id="navHome">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M3 11.5L12 4l9 7.5" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M5 21h14a1 1 0 0 0 1-1v-9.5" stroke-width="1.4" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">خانه</span>
+        </a>
+
+        <a href="/mint.html" class="os-item" id="navMint">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">ضرب</span>
+        </a>
+
+        <a href="/about-us.html" class="os-item" id="navAbout">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <circle cx="12" cy="8" r="2.2" stroke-width="1.2" />
+                <path d="M12 11.5c-3 0-5.5 1.7-5.5 3.8V18h11v-2.7c0-2.1-2.5-3.8-5.5-3.8z" stroke-width="1.2" />
+            </svg>
+            <span class="os-label font-medium">درباره ما</span>
+        </a>
+
+        <a href="/contact-us.html" class="os-item" id="navContact">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M21 8V7a2 2 0 0 0-2-2h-3" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                <rect x="3" y="5" width="14" height="14" rx="2" stroke-width="1.2" />
+                <path d="M21 15v2" stroke-width="1.2" stroke-linecap="round" />
+            </svg>
+            <span class="os-label font-medium">تماس با ما</span>
+        </a>
+    </nav>
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center font-bold text-slate-900">
+                    N
+                </div>
+                <div>
+                    <div class="text-lg font-semibold">مارکت NFT</div>
+                    <div class="text-xs text-slate-400">
+                        کشف و معامله مجموعه‌های دیجیتال
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <a href="/mint.html"
+                    class="hidden sm:block px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-400">ایجاد</a>
+
+                <div class="relative hidden sm:block">
+                    <button id="walletButton"
+                        class="ml-2 px-4 py-2 rounded-md bg-slate-100 text-slate-900 font-semibold hover:bg-white transition">
+                        اتصال کیف‌پول
+                    </button>
+                    <div id="walletMenu"
+                        class="hidden absolute left-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg p-2 z-50">
+                        <button id="viewOwnedBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+                            NFT های من
+                        </button>
+                        <button id="showAllBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+                            نمایش همه
+                        </button>
+                        <div class="border-t border-slate-700 my-1"></div>
+                        <button id="disconnectBtn"
+                            class="w-full text-left px-3 py-2 rounded text-red-400 hover:bg-slate-700">
+                            قطع اتصال
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Loading state -->
+        <div id="loadingState" class="text-center py-16">
+            <div class="text-slate-400">در حال بارگذاری...</div>
+        </div>
+
+        <!-- Error state -->
+        <div id="errorState" class="hidden text-center py-16">
+            <div class="text-red-400 text-xl mb-4">خطا در بارگذاری NFT</div>
+            <div class="text-slate-400 mb-6" id="errorMessage"></div>
+            <a href="/"
+                class="inline-block px-6 py-3 rounded-lg bg-emerald-500 text-slate-900 font-semibold hover:bg-emerald-400">
+                بازگشت به صفحه اصلی
+            </a>
+        </div>
+
+        <!-- NFT Detail Content -->
+        <div id="nftDetailContent" class="hidden">
+            <div class="mb-6">
+                <a href="/" class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor">
+                        <path d="M19 12H5M12 19l-7-7 7-7" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                    بازگشت به لیست
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Image Section -->
+                <div class="space-y-4">
+                    <div id="nftImage"
+                        class="w-full aspect-square rounded-2xl bg-slate-800 bg-cover bg-center border border-slate-700">
+                    </div>
+                </div>
+
+                <!-- Details Section -->
+                <div class="space-y-6">
+                    <div>
+                        <h1 id="nftName" class="text-4xl font-bold text-white mb-2"></h1>
+                        <p id="nftTokenId" class="text-slate-400 text-sm"></p>
+                    </div>
+
+                    <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <p class="text-sm uppercase text-slate-400 tracking-wide mb-1">
+                                    قیمت
+                                </p>
+                                <p id="nftPrice" class="text-3xl font-bold text-emerald-400"></p>
+                            </div>
+                            <button id="buyButton"
+                                class="px-6 py-3 rounded-lg font-semibold text-slate-900 bg-emerald-400 hover:bg-emerald-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                type="button">
+                                خرید
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6 space-y-4">
+                        <h2 class="text-xl font-semibold text-white">اطلاعات</h2>
+
+                        <div>
+                            <p class="text-sm text-slate-400 mb-1">مالک / فروشنده</p>
+                            <p id="nftOwner" class="text-white font-mono text-sm break-all"></p>
+                        </div>
+
+                        <div>
+                            <p class="text-sm text-slate-400 mb-1">آدرس قرارداد NFT</p>
+                            <p id="nftAddress" class="text-white font-mono text-sm break-all"></p>
+                        </div>
+
+                        <div>
+                            <p class="text-sm text-slate-400 mb-1">شناسه توکن</p>
+                            <p id="nftTokenIdDetail" class="text-white font-mono text-sm"></p>
+                        </div>
+
+                        <div id="nftTokenUriSection" class="hidden">
+                            <p class="text-sm text-slate-400 mb-1">Token URI</p>
+                            <p id="nftTokenUri" class="text-white font-mono text-xs break-all"></p>
+                        </div>
+                    </div>
+
+                    <div id="nftDescriptionSection" class="bg-slate-900/70 border border-slate-800 rounded-2xl p-6">
+                        <h2 class="text-xl font-semibold text-white mb-4">توضیحات</h2>
+                        <p id="nftDescription" class="text-slate-300 leading-relaxed whitespace-pre-wrap"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast container -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="public/js/nft-detail.js" defer></script>
+</body>
+
+</html>
