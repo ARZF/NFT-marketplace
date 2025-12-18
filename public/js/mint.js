@@ -11,8 +11,23 @@ const API_NFT_UPLOAD_URL = `${API_BASE}/api/nft/upload`;
 const API_CONFIG_URL = `${API_BASE}/api/config`;
 const API_REINDEX_URL = `${API_BASE}/api/reindex`;
 
-let MARKETPLACE_ADDRESS = "0xD089b7B482523405b026DF2a5caD007093252b15";
-let NFT_CONTRACT_ADDRESS = "0xDB9d9Bb58dB6774bbD72a9cBefb483F03Db1A5Fe";
+let MARKETPLACE_ADDRESS = getChainConfig(DEFAULT_CHAIN_ID).marketplace;
+let NFT_CONTRACT_ADDRESS = getChainConfig(DEFAULT_CHAIN_ID).nft;
+let CURRENCY = getChainConfig(DEFAULT_CHAIN_ID).currency;
+
+function updateChainConfig(chainId) {
+    const config = getChainConfig(chainId);
+    MARKETPLACE_ADDRESS = config.marketplace;
+    NFT_CONTRACT_ADDRESS = config.nft;
+    CURRENCY = config.currency;
+    console.log(`Switched to chain ${chainId}: ${config.name}`);
+
+    // Update price labels
+    const priceLabel = document.getElementById('priceLabel');
+    if (priceLabel) {
+        priceLabel.textContent = `قیمت (${CURRENCY})`;
+    }
+}
 const MARKETPLACE_ABI = [
     "function buyItem(address nftAddress, uint256 tokenId) payable",
     "function listItem(address nftAddress, uint256 tokenId, uint256 price)",
@@ -145,6 +160,15 @@ async function connectWallet() {
         await provider.send("eth_requestAccounts", []);
         signer = await provider.getSigner();
         userAddress = await signer.getAddress();
+
+        const network = await provider.getNetwork();
+        updateChainConfig(Number(network.chainId));
+
+        // Listen for network changes
+        window.ethereum.on('chainChanged', (chainId) => {
+            updateChainConfig(Number(chainId));
+        });
+
         walletButton.textContent = shortenAddress(userAddress);
         walletButton.classList.remove("bg-slate-100", "text-slate-900");
         walletButton.classList.add("bg-emerald-400", "text-slate-900");
@@ -362,7 +386,7 @@ async function handleMintForm(event) {
 
         const metadataPreview = JSON.stringify(result.metadata, null, 2);
         showNotification(
-            `توکن ضرب شد (ID: ${mintedTokenId.toString()}) و در قیمت ${priceEth} ETH لیست شد.`,
+            `توکن ضرب شد (ID: ${mintedTokenId.toString()}) و در قیمت ${priceEth} ${CURRENCY} لیست شد.`,
             {
                 type: "success",
                 title: "ضرب و لیست موفق",

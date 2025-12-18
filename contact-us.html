@@ -1,759 +1,441 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>تماس ما — مارکت NFT</title>
-    <meta
-      name="description"
-      content="بازار NFT فارسی — خلق، لیست و معاملهٔ NFTها. امن، شفاف و کاربرپسند."
-    />
-    <!-- optional Tailwind (kept for utilities). Remove if you prefer pure CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Global tokens + basic reset -->
-    <link rel="stylesheet" href="public/css/globals.css" />
-    <link rel="stylesheet" href="public/css/index.css" />
-    <!-- Page-specific styles -->
-    <link rel="stylesheet" href="public/css/contact.css" />
-    <!-- Page behavior -->
-    <script src="public/js/about.js" defer></script>
-        <script src="public/js/wallet.js" defer></script>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تماس ما — مارکت NFT</title>
+  <meta name="description" content="بازار NFT فارسی — خلق، لیست و معاملهٔ NFTها. امن، شفاف و کاربرپسند." />
+  <!-- optional Tailwind (kept for utilities). Remove if you prefer pure CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-  </head>
-  <body class="bg-slate-950 text-white min-h-screen">
-    <!-- Sidebar -->
-    <nav class="os-sidebar" aria-label="ناوبری اصلی">
-      <a href="/" class="os-item" id="navHome">
-        <!-- home icon -->
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            d="M3 11.5L12 4l9 7.5"
-            stroke-width="1.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M5 21h14a1 1 0 0 0 1-1v-9.5"
-            stroke-width="1.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span class="os-label font-medium">خانه</span>
-      </a>
+  <!-- Global tokens + basic reset -->
+  <link rel="stylesheet" href="public/css/globals.css" />
+  <link rel="stylesheet" href="public/css/index.css" />
+  <!-- Page-specific styles -->
+  <link rel="stylesheet" href="public/css/contact.css" />
+  <!-- Page behavior -->
+  <script src="public/js/about.js" defer></script>
+  <script src="public/js/wallet.js" defer></script>
 
-      <a href="/mint.html" class="os-item" id="navMint">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            d="M12 5v14M5 12h14"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span class="os-label font-medium">ضرب</span>
-      </a>
+</head>
 
-      <a
-        href="/explore.html"
-        aria-disabled="true"
-        class="os-item disabled"
-        id="navExplore"
-        tabindex="-1"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            d="M21 10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span class="os-label font-medium">کاوش</span>
-      </a>
+<body class="bg-slate-950 text-white min-h-screen">
+  <!-- Sidebar -->
+  <nav class="os-sidebar" aria-label="ناوبری اصلی">
+    <a href="/" class="os-item" id="navHome">
+      <!-- home icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M3 11.5L12 4l9 7.5" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M5 21h14a1 1 0 0 0 1-1v-9.5" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span class="os-label font-medium">خانه</span>
+    </a>
 
-      <a
-        href="/collections.html"
-        aria-disabled="true"
-        class="os-item disabled"
-        id="navCollections"
-        tabindex="-1"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <rect x="3" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
-          <rect x="14" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
-          <rect x="14" y="14" width="7" height="7" stroke-width="1.5" rx="1" />
-        </svg>
-        <span class="os-label font-medium">مجموعه‌ها</span>
-      </a>
+    <a href="/mint.html" class="os-item" id="navMint">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span class="os-label font-medium">ضرب</span>
+    </a>
 
-      <a
-        href="/activity.html"
-        aria-disabled="true"
-        class="os-item disabled"
-        id="navActivity"
-        tabindex="-1"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            d="M3 12h3l3 8 4-16 3 8h4"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span class="os-label font-medium">فعالیت‌ها</span>
-      </a>
+    <a href="/explore.html" aria-disabled="true" class="os-item disabled" id="navExplore" tabindex="-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M21 10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+      <span class="os-label font-medium">کاوش</span>
+    </a>
 
-      <!-- NEW: About & Contact -->
-      <a href="/about-us.html" class="os-item" id="navAbout">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <circle cx="12" cy="8" r="2.2" stroke-width="1.2" />
-          <path
-            d="M12 11.5c-3 0-5.5 1.7-5.5 3.8V18h11v-2.7c0-2.1-2.5-3.8-5.5-3.8z"
-            stroke-width="1.2"
-          />
-        </svg>
-        <span class="os-label font-medium">درباره ما</span>
-      </a>
+    <a href="/collections.html" aria-disabled="true" class="os-item disabled" id="navCollections" tabindex="-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
+        <rect x="14" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
+        <rect x="14" y="14" width="7" height="7" stroke-width="1.5" rx="1" />
+      </svg>
+      <span class="os-label font-medium">مجموعه‌ها</span>
+    </a>
 
-      <a href="/contact-us.html" class="os-item" id="navContact">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            d="M21 8V7a2 2 0 0 0-2-2h-3"
-            stroke-width="1.2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <rect x="3" y="5" width="14" height="14" rx="2" stroke-width="1.2" />
-          <path d="M21 15v2" stroke-width="1.2" stroke-linecap="round" />
-        </svg>
-        <span class="os-label font-medium">تماس با ما</span>
-      </a>
+    <a href="/activity.html" aria-disabled="true" class="os-item disabled" id="navActivity" tabindex="-1">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M3 12h3l3 8 4-16 3 8h4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <span class="os-label font-medium">فعالیت‌ها</span>
+    </a>
 
-      <a href="#" class="os-item mt-auto" id="navSettings">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-        >
-          <path
-            d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82..."
-            stroke-width="0.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <span class="os-label font-medium">تنظیمات</span>
-      </a>
-    </nav>
+    <!-- NEW: About & Contact -->
+    <a href="/about-us.html" class="os-item" id="navAbout">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="12" cy="8" r="2.2" stroke-width="1.2" />
+        <path d="M12 11.5c-3 0-5.5 1.7-5.5 3.8V18h11v-2.7c0-2.1-2.5-3.8-5.5-3.8z" stroke-width="1.2" />
+      </svg>
+      <span class="os-label font-medium">درباره ما</span>
+    </a>
 
-    <!-- Header -->
-    <header class="bg-slate-900 border-b border-slate-800">
-      <div
-        class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between"
-      >
-        <div
-          id="mobileBackdrop"
-          class="mobile-backdrop fixed inset-0 bg-black/40 z-50 hidden"
-        ></div>
-        <a href="/index.html">
-          <div class="flex items-center gap-4">
-            <div
-              class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center font-bold text-slate-900"
-            >
-              N
-            </div>
-            <div>
-              <div class="text-lg font-semibold">مارکت NFT</div>
-              <div class="text-xs text-slate-400">
-                کشف و معامله مجموعه‌های دیجیتال
-              </div>
-            </div>
-          </div></a
-        >
+    <a href="/contact-us.html" class="os-item" id="navContact">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M21 8V7a2 2 0 0 0-2-2h-3" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="3" y="5" width="14" height="14" rx="2" stroke-width="1.2" />
+        <path d="M21 15v2" stroke-width="1.2" stroke-linecap="round" />
+      </svg>
+      <span class="os-label font-medium">تماس با ما</span>
+    </a>
 
+    <a href="#" class="os-item mt-auto" id="navSettings">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82..." stroke-width="0.8" stroke-linecap="round"
+          stroke-linejoin="round" />
+      </svg>
+      <span class="os-label font-medium">تنظیمات</span>
+    </a>
+  </nav>
+
+  <!-- Header -->
+  <header class="bg-slate-900 border-b border-slate-800">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div id="mobileBackdrop" class="mobile-backdrop fixed inset-0 bg-black/40 z-50 hidden"></div>
+      <a href="/index.html">
         <div class="flex items-center gap-4">
           <div
-            class="hidden md:flex items-center bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 gap-3"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              class="text-slate-400"
-            >
-              ...
-            </svg>
-            <input
-              id="globalSearch"
-              placeholder="جستجو در آیتم‌ها، مجموعه‌ها، حساب‌ها"
-              class="bg-transparent outline-none text-sm text-slate-300 placeholder:text-slate-500 w-64"
-            />
+            class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center font-bold text-slate-900">
+            N
           </div>
+          <div>
+            <div class="text-lg font-semibold">مارکت NFT</div>
+            <div class="text-xs text-slate-400">
+              کشف و معامله مجموعه‌های دیجیتال
+            </div>
+          </div>
+        </div>
+      </a>
 
-          <a
-            href="/mint.html"
-            class="hidden sm:block px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-400"
-            >ایجاد</a
-          >
+      <div class="flex items-center gap-4">
+        <div class="hidden md:flex items-center bg-slate-800/60 border border-slate-700 rounded-lg px-3 py-2 gap-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-slate-400">
+            ...
+          </svg>
+          <input id="globalSearch" placeholder="جستجو در آیتم‌ها، مجموعه‌ها، حساب‌ها"
+            class="bg-transparent outline-none text-sm text-slate-300 placeholder:text-slate-500 w-64" />
+        </div>
 
-          <div class="relative hidden sm:block">
-            <button
-              id="walletButton"
-              class="ml-2 px-4 py-2 rounded-md bg-slate-100 text-slate-900 font-semibold hover:bg-white transition"
-            >
-              اتصال کیف‌پول
+        <a href="/mint.html"
+          class="hidden sm:block px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-400">ایجاد</a>
+
+        <div class="relative hidden sm:block">
+          <button id="walletButton"
+            class="ml-2 px-4 py-2 rounded-md bg-slate-100 text-slate-900 font-semibold hover:bg-white transition">
+            اتصال کیف‌پول
+          </button>
+          <div id="walletMenu"
+            class="hidden absolute left-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg p-2 z-50">
+            <button id="viewOwnedBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+              NFT های من
             </button>
-            <div
-              id="walletMenu"
-              class="hidden absolute left-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg p-2 z-50"
-            >
-              <button
-                id="viewOwnedBtn"
-                class="w-full text-left px-3 py-2 rounded hover:bg-slate-700"
-              >
+            <button id="showAllBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+              نمایش همه
+            </button>
+            <div class="border-t border-slate-700 my-1"></div>
+            <button id="disconnectBtn" class="w-full text-left px-3 py-2 rounded text-red-400 hover:bg-slate-700">
+              قطع اتصال
+            </button>
+          </div>
+        </div>
+        <!-- place this near walletButton inside header -->
+        <!-- Hamburger (visible on small screens) -->
+        <button id="mobileToggle" aria-expanded="false" aria-controls="mobileMenu"
+          class="md:hidden inline-flex items-center justify-center p-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200">
+          <svg id="mobileToggleIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor">
+            <path stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+
+        <!-- Mobile menu (initially hidden) -->
+        <div id="mobileMenu"
+          class="mobile-menu fixed inset-y-0 right-0 z-60 w-72 transform translate-x-full transition-transform"
+          aria-hidden="true">
+          <div class="h-full bg-slate-900 border-l border-slate-800 p-4 flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center font-bold text-slate-900">
+                  N
+                </div>
+                <div class="text-sm font-semibold">مارکت NFT</div>
+              </div>
+              <button id="mobileClose" aria-label="بستن منو" class="text-slate-400 hover:text-white">
+                ✕
+              </button>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto">
+              <a href="#" class="block os-item-mobile py-3 px-2 rounded-md">خانه</a>
+              <a href="/mint.html" class="block os-item-mobile py-3 px-2 rounded-md">ضرب</a>
+
+              <a href="#" class="block os-item-mobile py-3 px-2 rounded-md">مجموعه‌ها</a>
+              <a href="#" class="block os-item-mobile py-3 px-2 rounded-md">فعالیت‌ها</a>
+              <a href="#" class="block os-item-mobile py-3 px-2 rounded-md">علاقه‌مندی‌ها</a>
+            </nav>
+
+            <div class="mt-4">
+              <button id="mobileWalletBtn"
+                class="w-full px-4 py-2 rounded-md bg-emerald-500 text-slate-900 font-semibold">
+                اتصال کیف‌پول
+              </button>
+              <button id="mobileViewOwned"
+                class="w-full mt-2 px-4 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200">
                 NFT های من
               </button>
-              <button
-                id="showAllBtn"
-                class="w-full text-left px-3 py-2 rounded hover:bg-slate-700"
-              >
-                نمایش همه
-              </button>
-              <div class="border-t border-slate-700 my-1"></div>
-              <button
-                id="disconnectBtn"
-                class="w-full text-left px-3 py-2 rounded text-red-400 hover:bg-slate-700"
-              >
+              <button id="mobileDisconnect"
+                class="w-full mt-2 px-4 py-2 rounded-md text-red-400 border border-transparent hover:bg-slate-700">
                 قطع اتصال
               </button>
             </div>
           </div>
-          <!-- place this near walletButton inside header -->
-          <!-- Hamburger (visible on small screens) -->
-          <button
-            id="mobileToggle"
-            aria-expanded="false"
-            aria-controls="mobileMenu"
-            class="md:hidden inline-flex items-center justify-center p-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200"
-          >
-            <svg
-              id="mobileToggleIcon"
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 6h16M4 12h16M4 18h16"
-              ></path>
-            </svg>
-          </button>
-
-          <!-- Mobile menu (initially hidden) -->
-          <div
-            id="mobileMenu"
-            class="mobile-menu fixed inset-y-0 right-0 z-60 w-72 transform translate-x-full transition-transform"
-            aria-hidden="true"
-          >
-            <div
-              class="h-full bg-slate-900 border-l border-slate-800 p-4 flex flex-col"
-            >
-              <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-3">
-                  <div
-                    class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center font-bold text-slate-900"
-                  >
-                    N
-                  </div>
-                  <div class="text-sm font-semibold">مارکت NFT</div>
-                </div>
-                <button
-                  id="mobileClose"
-                  aria-label="بستن منو"
-                  class="text-slate-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <nav class="flex-1 overflow-y-auto">
-                <a href="#" class="block os-item-mobile py-3 px-2 rounded-md"
-                  >خانه</a
-                >
-                <a
-                  href="/mint.html"
-                  class="block os-item-mobile py-3 px-2 rounded-md"
-                  >ضرب</a
-                >
-
-                <a href="#" class="block os-item-mobile py-3 px-2 rounded-md"
-                  >مجموعه‌ها</a
-                >
-                <a href="#" class="block os-item-mobile py-3 px-2 rounded-md"
-                  >فعالیت‌ها</a
-                >
-                <a href="#" class="block os-item-mobile py-3 px-2 rounded-md"
-                  >علاقه‌مندی‌ها</a
-                >
-              </nav>
-
-              <div class="mt-4">
-                <button
-                  id="mobileWalletBtn"
-                  class="w-full px-4 py-2 rounded-md bg-emerald-500 text-slate-900 font-semibold"
-                >
-                  اتصال کیف‌پول
-                </button>
-                <button
-                  id="mobileViewOwned"
-                  class="w-full mt-2 px-4 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200"
-                >
-                  NFT های من
-                </button>
-                <button
-                  id="mobileDisconnect"
-                  class="w-full mt-2 px-4 py-2 rounded-md text-red-400 border border-transparent hover:bg-slate-700"
-                >
-                  قطع اتصال
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- optional backdrop -->
-          <div
-            id="mobileBackdrop"
-            class="mobile-backdrop fixed inset-0 bg-black/40 z-50 hidden"
-          ></div>
         </div>
+
+        <!-- optional backdrop -->
+        <div id="mobileBackdrop" class="mobile-backdrop fixed inset-0 bg-black/40 z-50 hidden"></div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <main id="main" class="page-main" aria-labelledby="page-title">
-      <div class="main-inner">
-        <!-- CONTACT HERO -->
-        <section
-          class="hero card"
-          aria-labelledby="contact-hero-title"
-          role="region"
-        >
-          <div class="hero-grid">
-            <div class="hero-text">
-              <h1 id="contact-hero-title" class="hero-title">تماس با ما</h1>
-              <p class="hero-lead">
-                سوالی داری؟ نیاز به همکاری یا مشکل فنی؟ فرم زیر را پر کن یا از
-                روش‌های دیگر تماس استفاده کن — تیم ما ظرف ۲۴ ساعت کاری پاسخ
-                می‌دهد.
-              </p>
+  <main id="main" class="page-main" aria-labelledby="page-title">
+    <div class="main-inner">
+      <!-- CONTACT HERO -->
+      <section class="hero card" aria-labelledby="contact-hero-title" role="region">
+        <div class="hero-grid">
+          <div class="hero-text">
+            <h1 id="contact-hero-title" class="hero-title">تماس با ما</h1>
+            <p class="hero-lead">
+              سوالی داری؟ نیاز به همکاری یا مشکل فنی؟ فرم زیر را پر کن یا از
+              روش‌های دیگر تماس استفاده کن — تیم ما ظرف ۲۴ ساعت کاری پاسخ
+              می‌دهد.
+            </p>
 
-              <div class="stats" role="list" aria-label="آمار پشتیبانی">
-                <div class="stat" role="listitem">
-                  <div class="num" data-target="24">24</div>
-                  <div class="label">ساعت پاسخ</div>
-                </div>
-                <div class="stat" role="listitem">
-                  <div class="num" data-target="7">7</div>
-                  <div class="label">روز هفته</div>
-                </div>
-                <div class="stat" role="listitem">
-                  <div class="num" data-target="98">98</div>
-                  <div class="label">رضایت</div>
-                </div>
+            <div class="stats" role="list" aria-label="آمار پشتیبانی">
+              <div class="stat" role="listitem">
+                <div class="num" data-target="24">24</div>
+                <div class="label">ساعت پاسخ</div>
               </div>
-
-              <div class="cta" style="margin-top: 12px">
-                <a class="btn primary" href="#contact-form">ارسال پیام</a>
-                <a class="btn ghost" href="#contact-methods">روش‌های تماس</a>
+              <div class="stat" role="listitem">
+                <div class="num" data-target="7">7</div>
+                <div class="label">روز هفته</div>
+              </div>
+              <div class="stat" role="listitem">
+                <div class="num" data-target="98">98</div>
+                <div class="label">رضایت</div>
               </div>
             </div>
 
-            <!-- hero image -->
-            <figure class="hero-figure" aria-hidden="false">
-              <img
-                src="public/images/nft2.webp"
-                alt="تماس با تیم پشتیبانی مارکت NFT"
-                class="hero-img"
-                loading="lazy"
-                width="560"
-                height="360"
-              />
-              <figcaption class="sr-only">
-                تماس با تیم پشتیبانی مارکت NFT
-              </figcaption>
-            </figure>
+            <div class="cta" style="margin-top: 12px">
+              <a class="btn primary" href="#contact-form">ارسال پیام</a>
+              <a class="btn ghost" href="#contact-methods">روش‌های تماس</a>
+            </div>
           </div>
-        </section>
 
-        <!-- CONTACT GRID: form + methods (with map) -->
-        <section
-          class="centered-card contact-grid"
-          aria-labelledby="contact-methods"
-        >
-          <!-- contact form (UPDATED - advanced & accessible) -->
-          <article class="card" id="contact-form" aria-labelledby="form-title">
-            <h3 id="form-title" class="p-6 justify-center flex items-center">
-              ارسال پیام به پشتیبانی
-            </h3>
+          <!-- hero image -->
+          <figure class="hero-figure" aria-hidden="false">
+            <img src="public/images/nft2.webp" alt="تماس با تیم پشتیبانی مارکت NFT" class="hero-img" loading="lazy"
+              width="560" height="360" />
+            <figcaption class="sr-only">
+              تماس با تیم پشتیبانی مارکت NFT
+            </figcaption>
+          </figure>
+        </div>
+      </section>
 
-            <form
-              id="contactUsForm"
-              class="contact-form"
-              data-api-endpoint="/api/contact"
-              novalidate
-              aria-describedby="form-instructions"
-            >
-              <!-- visually-hidden honeypot -->
-              <input
-                type="text"
-                name="hp"
-                value=""
-                class="sr-only"
-                aria-hidden="true"
-                tabindex="-1"
-              />
+      <!-- CONTACT GRID: form + methods (with map) -->
+      <section class="centered-card contact-grid" aria-labelledby="contact-methods">
+        <!-- contact form (UPDATED - advanced & accessible) -->
+        <article class="card" id="contact-form" aria-labelledby="form-title">
+          <h3 id="form-title" class="p-6 justify-center flex items-center">
+            ارسال پیام به پشتیبانی
+          </h3>
 
-              <p id="form-instructions" class="sr-only">
-                فیلدهای علامت‌گذاری‌شده با ستاره (*) ضروری هستند.
-              </p>
+          <form id="contactUsForm" class="contact-form" data-api-endpoint="/api/contact" novalidate
+            aria-describedby="form-instructions">
+            <!-- visually-hidden honeypot -->
+            <input type="text" name="hp" value="" class="sr-only" aria-hidden="true" tabindex="-1" />
 
-              <div class="form-row py-4">
-                <label for="c_name" class="form-label"
-                  >نام و نام خانوادگی <span aria-hidden="true">*</span></label
-                >
-                <input
-                  id="c_name"
-                  name="name"
-                  type="text"
-                  placeholder="نام و نام خانوادگی *"
-                  required
-                  aria-required="true"
-                  autocomplete="name"
-                  minlength="2"
-                  aria-describedby="err_name"
-                />
-                <div
-                  class="field-error"
-                  id="err_name"
-                  aria-live="polite"
-                  role="alert"
-                ></div>
-              </div>
+            <p id="form-instructions" class="sr-only">
+              فیلدهای علامت‌گذاری‌شده با ستاره (*) ضروری هستند.
+            </p>
 
-              <div class="form-row">
-                <label for="c_email" class="form-label"
-                  >ایمیل <span aria-hidden="true">*</span></label
-                >
-                <input
-                  id="c_email"
-                  name="email"
-                  type="email"
-                  placeholder="ایمیل *"
-                  required
-                  aria-required="true"
-                  autocomplete="email"
-                  aria-describedby="err_email"
-                />
-                <div
-                  class="field-error"
-                  id="err_email"
-                  aria-live="polite"
-                  role="alert"
-                ></div>
-              </div>
+            <div class="form-row py-4">
+              <label for="c_name" class="form-label">نام و نام خانوادگی <span aria-hidden="true">*</span></label>
+              <input id="c_name" name="name" type="text" placeholder="نام و نام خانوادگی *" required
+                aria-required="true" autocomplete="name" minlength="2" aria-describedby="err_name" />
+              <div class="field-error" id="err_name" aria-live="polite" role="alert"></div>
+            </div>
 
-              <div class="form-roص">
-                <label for="c_subject" class="form-label">موضوع</label>
-                <input
-                  id="c_subject"
-                  name="subject"
-                  type="text"
-                  placeholder="موضوع (اختیاری)"
-                  maxlength="120"
-                />
-              </div>
-              <div class="form-row mt-1">
-                <label for="c_type" class="form-label">نوع درخواست</label>
-                <select id="c_type" name="type" aria-label="نوع درخواست">
-                  <option value="general">عمومی</option>
-                  <option value="bug">گزارش باگ</option>
-                  <option value="partnership">همکاری</option>
-                  <option value="other">سایر</option>
-                </select>
-              </div>
-              <div class="form-row">
-                <label for="c_message" class="form-label"
-                  >پیام <span aria-hidden="true">*</span></label
-                >
-                <textarea
-                  id="c_message"
-                  name="message"
-                  rows="6"
-                  placeholder="پیام شما *"
-                  required
-                  aria-required="true"
-                  minlength="10"
-                  aria-describedby="err_message message_count"
-                ></textarea>
-                <div
-                  class="field-error"
-                  id="err_message"
-                  aria-live="polite"
-                  role="alert"
-                ></div>
-              </div>
+            <div class="form-row">
+              <label for="c_email" class="form-label">ایمیل <span aria-hidden="true">*</span></label>
+              <input id="c_email" name="email" type="email" placeholder="ایمیل *" required aria-required="true"
+                autocomplete="email" aria-describedby="err_email" />
+              <div class="field-error" id="err_email" aria-live="polite" role="alert"></div>
+            </div>
 
-              <div
-                class="form-row form-actions justify-end flex"
-                style="margin-top: 14px"
-              >
-                <button
-                  type="submit"
-                  class="bg-gradient-to-br from-cyan-400 to-violet-600 p-4 rounded-xl"
-                  aria-label="ارسال پیام"
-                >
-                  <span class="btn-text">ارسال پیام</span>
-                  <span class="btn-spinner" aria-hidden="true" hidden></span>
-                </button>
-              </div>
+            <div class="form-roص">
+              <label for="c_subject" class="form-label">موضوع</label>
+              <input id="c_subject" name="subject" type="text" placeholder="موضوع (اختیاری)" maxlength="120" />
+            </div>
+            <div class="form-row mt-1">
+              <label for="c_type" class="form-label">نوع درخواست</label>
+              <select id="c_type" name="type" aria-label="نوع درخواست">
+                <option value="general">عمومی</option>
+                <option value="bug">گزارش باگ</option>
+                <option value="partnership">همکاری</option>
+                <option value="other">سایر</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="c_message" class="form-label">پیام <span aria-hidden="true">*</span></label>
+              <textarea id="c_message" name="message" rows="6" placeholder="پیام شما *" required aria-required="true"
+                minlength="10" aria-describedby="err_message message_count"></textarea>
+              <div class="field-error" id="err_message" aria-live="polite" role="alert"></div>
+            </div>
 
-              <div
-                id="formStatus"
-                role="status"
-                aria-live="polite"
-                class="form-status"
-                hidden
-              ></div>
-            </form>
-          </article>
+            <div class="form-row form-actions justify-end flex" style="margin-top: 14px">
+              <button type="submit" class="bg-gradient-to-br from-cyan-400 to-violet-600 p-4 rounded-xl"
+                aria-label="ارسال پیام">
+                <span class="btn-text">ارسال پیام</span>
+                <span class="btn-spinner" aria-hidden="true" hidden></span>
+              </button>
+            </div>
 
-          <!-- contact methods / quick cards + map -->
-          <aside
-            class="card centered-aside rounded-xl"
-            aria-labelledby="contact-methods-title"
-          >
-            <h3 id="contact-methods-title">روش‌های تماس</h3>
+            <div id="formStatus" role="status" aria-live="polite" class="form-status" hidden></div>
+          </form>
+        </article>
 
-            <div class="contact-methods" id="contact-methods">
-              <div class="method">
-                <div class="m-icon" aria-hidden="true">✉️</div>
-                <div class="m-body">
-                  <div class="m-title">ایمیل پشتیبانی</div>
-                  <div class="m-sub">
-                    برای مسائل عمومی:
-                    <a href="mailto:support@example.com">support@example.com</a>
-                  </div>
-                </div>
-              </div>
+        <!-- contact methods / quick cards + map -->
+        <aside class="card centered-aside rounded-xl" aria-labelledby="contact-methods-title">
+          <h3 id="contact-methods-title">روش‌های تماس</h3>
 
-              <div class="method">
-                <div class="m-icon" aria-hidden="true">🕘</div>
-                <div class="m-body">
-                  <div class="m-title">ساعات کاری</div>
-                  <div class="m-sub">شنبه تا چهارشنبه — ۱۰:۰۰ الی ۱۹:۰۰</div>
-                </div>
-              </div>
-
-              <div class="method">
-                <div class="m-icon" aria-hidden="true">📞</div>
-                <div class="m-body">
-                  <div class="m-title">تماس فوری</div>
-                  <div class="m-sub">۰۲4-۱۲۳۴۵۶۷۸ (پشتیبانی)</div>
-                </div>
-              </div>
-
-              <div class="method">
-                <div class="m-icon" aria-hidden="true">📍</div>
-                <div class="m-body">
-                  <div class="m-title">دفتر مرکزی</div>
-                  <div class="m-sub">زنجان مرکز فناوری</div>
+          <div class="contact-methods" id="contact-methods">
+            <div class="method">
+              <div class="m-icon" aria-hidden="true">✉️</div>
+              <div class="m-body">
+                <div class="m-title">ایمیل پشتیبانی</div>
+                <div class="m-sub">
+                  برای مسائل عمومی:
+                  <a href="mailto:support@example.com">support@example.com</a>
                 </div>
               </div>
             </div>
 
-            <!-- interactive map (OpenStreetMap embed) -->
-            <div class="map-figure" style="margin-top: 12px">
-              <div class="map-wrap" aria-hidden="false">
-                <iframe
-                  title="نقشه محل دفتر مارکت NFT"
-                  src="https://www.openstreetmap.org/export/embed.html?bbox=51.37%2C35.68%2C51.40%2C35.70&layer=mapnik&marker=35.6892%2C51.3890"
-                  loading="lazy"
-                  aria-label="نقشه محل دفتر"
-                  style="
+            <div class="method">
+              <div class="m-icon" aria-hidden="true">🕘</div>
+              <div class="m-body">
+                <div class="m-title">ساعات کاری</div>
+                <div class="m-sub">شنبه تا چهارشنبه — ۱۰:۰۰ الی ۱۹:۰۰</div>
+              </div>
+            </div>
+
+            <div class="method">
+              <div class="m-icon" aria-hidden="true">📞</div>
+              <div class="m-body">
+                <div class="m-title">تماس فوری</div>
+                <div class="m-sub">۰۲4-۱۲۳۴۵۶۷۸ (پشتیبانی)</div>
+              </div>
+            </div>
+
+            <div class="method">
+              <div class="m-icon" aria-hidden="true">📍</div>
+              <div class="m-body">
+                <div class="m-title">دفتر مرکزی</div>
+                <div class="m-sub">زنجان مرکز فناوری</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- interactive map (OpenStreetMap embed) -->
+          <div class="map-figure" style="margin-top: 12px">
+            <div class="map-wrap" aria-hidden="false">
+              <iframe title="نقشه محل دفتر مارکت NFT"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=51.37%2C35.68%2C51.40%2C35.70&layer=mapnik&marker=35.6892%2C51.3890"
+                loading="lazy" aria-label="نقشه محل دفتر" style="
                     width: 100%;
                     height: 220px;
                     border: 0;
                     border-radius: 8px;
-                  "
-                ></iframe>
-              </div>
-            </div>
-
-            <!-- social links -->
-            <div
-              class="contact-socials flex justify-between px-9 py-2"
-              style="margin-top: 12px"
-            >
-              <a
-                class="social-link"
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="توئیتر"
-              >
-                <!-- twitter svg -->
-                <svg
-                  viewBox="0 0 24 24"
-                  width="35"
-                  height="35"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M22 5.9c-.6.3-1.2.5-1.9.6.7-.4 1.2-1 1.4-1.7-.6.4-1.3.7-2.1.9C18.6 4.7 17.5 4 16.2 4c-1.9 0-3.4 1.6-3.4 3.5 0 .3 0 .6.1.8C9.2 8.2 6.2 6.6 4.2 4c-.3.5-.5 1.1-.5 1.7 0 1.2.6 2.3 1.6 2.9-.6 0-1.1-.2-1.6-.4 0 1.8 1.2 3.3 2.8 3.6-.3.1-.6.1-.9.1-.2 0-.5 0-.7-.1.5 1.6 2 2.7 3.7 2.8-1.4 1.1-3.1 1.7-4.9 1.7H6c1.8 1.2 4 1.8 6.4 1.8 7.7 0 11.9-6.6 11.9-12.3v-.6c.9-.6 1.6-1.3 2.2-2.1-.8.3-1.6.5-2.4.6z"
-                  />
-                </svg>
-                توئیتر
-              </a>
-
-              <a
-                class="social-link"
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="اینستاگرام"
-              >
-                <!-- instagram svg -->
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  width="35"
-                  height="35"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 6.3A4.7 4.7 0 1 0 16.7 13 4.7 4.7 0 0 0 12 8.3zm6.2-2.4a1.1 1.1 0 1 0 1.1 1.1 1.1 1.1 0 0 0-1.1-1.1z"
-                  />
-                </svg>
-                اینستاگرام
-              </a>
-
-              <a
-                class="social-link"
-                href="https://t.me"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="تلگرام"
-              >
-                <!-- telegram svg -->
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  width="35"
-                  height="35"
-                  aria-hidden="true"
-                >
-                  <path d="M21 3L3 10.5l3.5 1.1L18 7l-9 8 2.2 3.2L21 3z" />
-                </svg>
-                تلگرام
-              </a>
-            </div>
-          </aside>
-        </section>
-
-        <!-- FAQ short -->
-        <section class="card faq-compact" aria-labelledby="contact-faq">
-          <h3 id="contact-faq">پرسش‌های متداول</h3>
-          <div class="faq" id="faq-contact">
-            <div class="q">
-              <button class="q-btn" aria-expanded="false">
-                چقدر زمان برای پاسخ لازم است؟ <span class="chev">▾</span>
-              </button>
-              <div class="answer" hidden>
-                معمولاً ظرف ۲۴ ساعت کاری پاسخ داده می‌شود؛ برای درخواست‌های فنی
-                پیچیده‌تر ممکن است زمان بیشتری لازم باشد.
-              </div>
-            </div>
-            <div class="q">
-              <button class="q-btn" aria-expanded="false">
-                آیا پشتیبانی به زبان فارسی است؟ <span class="chev">▾</span>
-              </button>
-              <div class="answer" hidden>
-                بله، تیم پشتیبانی فارسی‌زبان پاسخ خواهد داد. در صورت درخواست
-                می‌توان پشتیبانی انگلیسی نیز ارائه کرد.
-              </div>
+                  "></iframe>
             </div>
           </div>
-        </section>
 
-        <footer class="about-footer card" role="contentinfo">
-          <p>
-            اگر نیاز به پشتیبانی تجاری یا همکاری‌های بزرگ دارید، موضوع را در فرم
-            ذکر کنید — ما با اولویت بررسی خواهیم کرد.
-          </p>
-          <small>© مارکت NFT — همه حقوق محفوظ است</small>
-        </footer>
-      </div>
-    </main>
-       <script src="public/js/about.js" defer></script>
-        <script src="public/js/wallet.js" defer></script>
+          <!-- social links -->
+          <div class="contact-socials flex justify-between px-9 py-2" style="margin-top: 12px">
+            <a class="social-link" href="https://twitter.com" target="_blank" rel="noopener noreferrer"
+              aria-label="توئیتر">
+              <!-- twitter svg -->
+              <svg viewBox="0 0 24 24" width="35" height="35" fill="currentColor" aria-hidden="true">
+                <path
+                  d="M22 5.9c-.6.3-1.2.5-1.9.6.7-.4 1.2-1 1.4-1.7-.6.4-1.3.7-2.1.9C18.6 4.7 17.5 4 16.2 4c-1.9 0-3.4 1.6-3.4 3.5 0 .3 0 .6.1.8C9.2 8.2 6.2 6.6 4.2 4c-.3.5-.5 1.1-.5 1.7 0 1.2.6 2.3 1.6 2.9-.6 0-1.1-.2-1.6-.4 0 1.8 1.2 3.3 2.8 3.6-.3.1-.6.1-.9.1-.2 0-.5 0-.7-.1.5 1.6 2 2.7 3.7 2.8-1.4 1.1-3.1 1.7-4.9 1.7H6c1.8 1.2 4 1.8 6.4 1.8 7.7 0 11.9-6.6 11.9-12.3v-.6c.9-.6 1.6-1.3 2.2-2.1-.8.3-1.6.5-2.4.6z" />
+              </svg>
+              توئیتر
+            </a>
 
-  </body>
+            <a class="social-link" href="https://instagram.com" target="_blank" rel="noopener noreferrer"
+              aria-label="اینستاگرام">
+              <!-- instagram svg -->
+              <svg viewBox="0 0 24 24" fill="currentColor" width="35" height="35" aria-hidden="true">
+                <path
+                  d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 6.3A4.7 4.7 0 1 0 16.7 13 4.7 4.7 0 0 0 12 8.3zm6.2-2.4a1.1 1.1 0 1 0 1.1 1.1 1.1 1.1 0 0 0-1.1-1.1z" />
+              </svg>
+              اینستاگرام
+            </a>
+
+            <a class="social-link" href="https://t.me" target="_blank" rel="noopener noreferrer" aria-label="تلگرام">
+              <!-- telegram svg -->
+              <svg viewBox="0 0 24 24" fill="currentColor" width="35" height="35" aria-hidden="true">
+                <path d="M21 3L3 10.5l3.5 1.1L18 7l-9 8 2.2 3.2L21 3z" />
+              </svg>
+              تلگرام
+            </a>
+          </div>
+        </aside>
+      </section>
+
+      <!-- FAQ short -->
+      <section class="card faq-compact" aria-labelledby="contact-faq">
+        <h3 id="contact-faq">پرسش‌های متداول</h3>
+        <div class="faq" id="faq-contact">
+          <div class="q">
+            <button class="q-btn" aria-expanded="false">
+              چقدر زمان برای پاسخ لازم است؟ <span class="chev">▾</span>
+            </button>
+            <div class="answer" hidden>
+              معمولاً ظرف ۲۴ ساعت کاری پاسخ داده می‌شود؛ برای درخواست‌های فنی
+              پیچیده‌تر ممکن است زمان بیشتری لازم باشد.
+            </div>
+          </div>
+          <div class="q">
+            <button class="q-btn" aria-expanded="false">
+              آیا پشتیبانی به زبان فارسی است؟ <span class="chev">▾</span>
+            </button>
+            <div class="answer" hidden>
+              بله، تیم پشتیبانی فارسی‌زبان پاسخ خواهد داد. در صورت درخواست
+              می‌توان پشتیبانی انگلیسی نیز ارائه کرد.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="about-footer card" role="contentinfo">
+        <p>
+          اگر نیاز به پشتیبانی تجاری یا همکاری‌های بزرگ دارید، موضوع را در فرم
+          ذکر کنید — ما با اولویت بررسی خواهیم کرد.
+        </p>
+        <small>© مارکت NFT — همه حقوق محفوظ است</small>
+      </footer>
+    </div>
+  </main>
+  <script src="public/js/config.js"></script>
+  <script src="public/js/about.js" defer></script>
+  <script src="public/js/wallet.js" defer></script>
+
+</body>
+
 </html>

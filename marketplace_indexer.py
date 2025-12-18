@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_RPC_URL = "https://sepolia.infura.io/v3/YOUR_INFURA_KEY"
 RPC_URL = os.getenv("MARKETPLACE_RPC_URL", DEFAULT_RPC_URL).strip()
+CHAIN_ID = int(os.getenv("MARKETPLACE_CHAIN_ID", "11155111"))
 DEFAULT_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000dEaD00"
 MARKETPLACE_ADDRESS = os.getenv("MARKETPLACE_CONTRACT_ADDRESS", DEFAULT_CONTRACT_ADDRESS).strip()
 USE_MOCK_EVENTS = os.getenv("USE_MOCK_EVENTS", "true").lower() in {"true", "1", "yes"}
@@ -98,6 +99,7 @@ class ListingSoldEvent(TypedDict):
 class Listing:
     token_id: int
     nft_address: str
+    chain_id: int
     price_eth: str
     price_wei: str
     seller_address: str
@@ -385,13 +387,14 @@ def process_events(events: Iterable[dict]) -> None:
                 upsert_listing_record(
                     token_id=event["tokenId"],
                     nft_address=normalized_address,
+                    chain_id=CHAIN_ID,
                     price_eth=wei_to_eth_str(price_wei),
                     price_wei=str(price_wei),
                     seller_address=event.get("seller") or "",
                     is_sold=0,
                 )
             case "ListingSold":
-                mark_listing_sold_record(token_id=event["tokenId"], nft_address=normalized_address)
+                mark_listing_sold_record(token_id=event["tokenId"], nft_address=normalized_address, chain_id=CHAIN_ID)
 
 
 def run_indexer() -> None:
@@ -443,6 +446,7 @@ def get_active_listings() -> List[Listing]:
         listing = Listing(
             token_id=int(row["token_id"]),
             nft_address=checksum(row["nft_address"]),
+            chain_id=int(row["chain_id"]),
             price_eth=row["price_eth"],
             price_wei=row["price_wei"],
             seller_address=row["seller_address"],
@@ -461,6 +465,7 @@ def get_active_listings() -> List[Listing]:
                 upsert_listing_record(
                     token_id=listing.token_id,
                     nft_address=listing.nft_address,
+                    chain_id=listing.chain_id,
                     price_eth=listing.price_eth,
                     price_wei=listing.price_wei,
                     seller_address=listing.seller_address,
