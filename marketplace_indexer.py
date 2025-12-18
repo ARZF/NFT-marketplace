@@ -31,6 +31,23 @@ RPC_URL = os.getenv("MARKETPLACE_RPC_URL", DEFAULT_RPC_URL).strip()
 CHAIN_ID = int(os.getenv("MARKETPLACE_CHAIN_ID", "11155111"))
 DEFAULT_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000dEaD00"
 MARKETPLACE_ADDRESS = os.getenv("MARKETPLACE_CONTRACT_ADDRESS", DEFAULT_CONTRACT_ADDRESS).strip()
+
+# New Multi-chain Configuration
+INDEXED_CHAINS = [
+    {
+        "chain_id": 11155111,
+        "name": "sepolia",
+        "rpc_url": os.getenv("SEPOLIA_RPC_URL", "https://sepolia.infura.io/v3/YOUR_INFURA_KEY"),
+        "marketplace": os.getenv("SEPOLIA_MARKETPLACE", "0xD089b7B482523405b026DF2a5caD007093252b15"),
+    },
+    {
+        "chain_id": 84532,
+        "name": "base-sepolia",
+        "rpc_url": os.getenv("BASE_SEPOLIA_RPC_URL", "https://sepolia.base.org"),
+        "marketplace": os.getenv("BASE_SEPOLIA_MARKETPLACE", "0x67d374fCE79f6F0Ad297b643792733a513735a54"),
+    }
+]
+
 USE_MOCK_EVENTS = os.getenv("USE_MOCK_EVENTS", "true").lower() in {"true", "1", "yes"}
 BLOCK_LOOKBACK = int(os.getenv("BLOCK_LOOKBACK", "10000"))
 
@@ -125,16 +142,12 @@ def normalize_address(address: str) -> str:
     return address.lower()
 
 
-@lru_cache(maxsize=1)
-def web3_client() -> Web3:
+@lru_cache(maxsize=10)
+def web3_client(rpc_url: str) -> Web3:
     """
-    Lazily-initialized Web3 client.
-
-    NOTE: Validation of RPC URL and contract address is performed in
-    `validate_chain_configuration` which is called from `run_indexer` before
-    we ever construct the client for live-chain reads.
+    Lazily-initialized Web3 client for a specific RPC URL.
     """
-    return Web3(Web3.HTTPProvider(RPC_URL, request_kwargs={"timeout": 10}))
+    return Web3(Web3.HTTPProvider(rpc_url, request_kwargs={"timeout": 10}))
 
 
 def wei_to_eth_str(value_wei: int) -> str:
@@ -218,7 +231,13 @@ def enrich_listing_with_metadata(listing: Listing) -> Listing:
         return listing
     
     try:
-        w3 = web3_client()
+        # Find the RPC URL for this listing's chain
+        chain_cfg = next((c for c in INDEXED_CHAINS if c["chain_id"] == listing.chain_id), None)
+        if not chain_cfg:
+            logger.warning(f"No config found for chain_id {listing.chain_id}")
+            return listing
+            
+        w3 = web3_client(chain_cfg["rpc_url"])
         token_uri = fetch_token_uri(w3, listing.nft_address, listing.token_id)
         
         if not token_uri:
@@ -237,14 +256,14 @@ def enrich_listing_with_metadata(listing: Listing) -> Listing:
                 listing.image_url = ipfs_to_https(image)
         
     except Exception as exc:
-        logger.warning(f"Failed to enrich listing {listing.token_id}: {exc}")
+        logger.warning(f"Failed to enrich listing {listing.token_id} on chain {listing.chain_id}: {exc}")
     
     return listing
 
 
-def simulate_event_stream() -> Iterable[dict]:
+def simulate_event_stream(chain_id: int) -> Iterable[dict]:
     """
-    Pretend to fetch the last 10k blocks and yield structured event data.
+    Pretend to fetch events for a specific chain and yield structured event data.
     """
 
     mock_data = [
@@ -260,13 +279,17 @@ def simulate_event_stream() -> Iterable[dict]:
             "priceEth": 1.5,
             "seller": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         },
-        {
-            "tokenId": 3,
-            "nftAddress": "0x3333333333333333333333333333333333333333",
-            "priceEth": 0.05,
-            "seller": "0xcccccccccccccccccccccccccccccccccccccccc",
-        },
     ]
+    
+    # Add a chain-specific mock item
+    if chain_id == 84532: # Base Sepolia
+        mock_data.append({
+            "tokenId": 100,
+            "nftAddress": "0x6B15359C8dF1Cf4F6C3cB51d0788fED2A4B6aD9a",
+            "priceEth": 0.01,
+            "seller": "0xcccccccccccccccccccccccccccccccccccccccc",
+        })
+
     base_listing_events: List[ListingCreatedEvent] = [
         {
             "event": "ListingCreated",
@@ -278,72 +301,55 @@ def simulate_event_stream() -> Iterable[dict]:
         for entry in mock_data
     ]
 
-    base_sale_events: List[ListingSoldEvent] = [
-        {
-            "event": "ListingSold",
-            "tokenId": 2,
-            "nftAddress": f"0x{2:040x}",
-            "buyer": "0xdddddddddddddddddddddddddddddddddddddddd",
-        }
-    ]
-
-    for evt in base_listing_events + base_sale_events:
+    for evt in base_listing_events:
         yield evt
 
 
-def validate_chain_configuration() -> None:
+def validate_chain_configuration(chain_cfg: dict) -> None:
     """
-    Ensure that when USE_MOCK_EVENTS is disabled we have sane on-chain settings.
-
-    This is aimed at better runtime errors on Railway / production where
-    forgetting to set env vars can otherwise result in obscure Web3 failures.
+    Ensure that when USE_MOCK_EVENTS is disabled we have sane on-chain settings
+    for a specific chain configuration.
     """
+    rpc_url = chain_cfg.get("rpc_url")
+    marketplace_address = chain_cfg.get("marketplace")
+    chain_name = chain_cfg.get("name", "unknown")
 
     # RPC URL checks
-    if not RPC_URL:
-        raise ValueError(
-            "MARKETPLACE_RPC_URL is empty. Set a real HTTPS RPC endpoint or re-enable USE_MOCK_EVENTS."
-        )
-    if "YOUR_INFURA_KEY" in RPC_URL:
-        raise ValueError(
-            "MARKETPLACE_RPC_URL is still using the placeholder Infura URL. "
-            "Replace YOUR_INFURA_KEY with a real project ID, or set USE_MOCK_EVENTS=true."
-        )
+    if not rpc_url:
+        raise ValueError(f"RPC URL for {chain_name} is empty.")
+    
+    if "YOUR_INFURA_KEY" in rpc_url:
+        raise ValueError(f"RPC URL for {chain_name} still uses placeholder YOUR_INFURA_KEY.")
 
     # Contract address checks
-    if not MARKETPLACE_ADDRESS:
-        raise ValueError(
-            "MARKETPLACE_CONTRACT_ADDRESS is empty. Set it to your deployed marketplace contract address "
-            "or re-enable USE_MOCK_EVENTS."
-        )
-    if MARKETPLACE_ADDRESS == DEFAULT_CONTRACT_ADDRESS:
-        raise ValueError(
-            "MARKETPLACE_CONTRACT_ADDRESS is still the dead placeholder address. "
-            "Set it to your deployed marketplace contract address, or set USE_MOCK_EVENTS=true."
-        )
+    if not marketplace_address:
+        raise ValueError(f"Marketplace address for {chain_name} is empty.")
+    
+    if marketplace_address == DEFAULT_CONTRACT_ADDRESS:
+        raise ValueError(f"Marketplace address for {chain_name} is still placeholder.")
 
     try:
-        # This will raise InvalidAddress if the format is wrong.
-        Web3.to_checksum_address(MARKETPLACE_ADDRESS)
-    except (InvalidAddress, ValueError) as exc:  # web3 <-> py differences
+        Web3.to_checksum_address(marketplace_address)
+    except (InvalidAddress, ValueError) as exc:
         raise ValueError(
-            f"MARKETPLACE_CONTRACT_ADDRESS '{MARKETPLACE_ADDRESS}' is not a valid Ethereum address. "
-            "Expected a 0x-prefixed, 40-hex-character address."
+            f"Marketplace address '{marketplace_address}' for {chain_name} is invalid."
         ) from exc
 
 
-def fetch_contract_events(w3: Web3) -> List[dict]:
+def fetch_contract_events(chain_cfg: dict) -> List[dict]:
+    rpc_url = chain_cfg["rpc_url"]
+    marketplace_address = chain_cfg["marketplace"]
+    
+    w3 = web3_client(rpc_url)
     try:
-        contract = w3.eth.contract(address=checksum(MARKETPLACE_ADDRESS), abi=MARKETPLACE_ABI)
+        contract = w3.eth.contract(address=checksum(marketplace_address), abi=MARKETPLACE_ABI)
         latest = w3.eth.block_number
-    except Exception as exc:  # pragma: no cover - defensive, type varies
-        # Surface configuration / connectivity issues explicitly instead of
-        # failing deep inside web3 with a less obvious stack trace.
+    except Exception as exc:
         raise RuntimeError(
-            "Failed to connect to Ethereum RPC or load marketplace contract. "
-            f"RPC URL: '{RPC_URL}', contract: '{MARKETPLACE_ADDRESS}'. "
-            "Double-check MARKETHPLACE_RPC_URL / MARKETPLACE_CONTRACT_ADDRESS or re-enable USE_MOCK_EVENTS."
+            f"Failed to connect to chain {chain_cfg['name']} at {rpc_url} or load marketplace contract {marketplace_address}. "
+            "Double-check configuration or re-enable USE_MOCK_EVENTS."
         ) from exc
+    
     from_block = max(latest - BLOCK_LOOKBACK, 0)
 
     def parse_logs(event: ContractEvent, event_name: str) -> List[dict]:
@@ -372,7 +378,7 @@ def fetch_contract_events(w3: Web3) -> List[dict]:
     return combined
 
 
-def process_events(events: Iterable[dict]) -> None:
+def process_events(events: Iterable[dict], chain_id: int) -> None:
     """
     Consume the events and mutate the in-memory listing book.
     """
@@ -387,47 +393,42 @@ def process_events(events: Iterable[dict]) -> None:
                 upsert_listing_record(
                     token_id=event["tokenId"],
                     nft_address=normalized_address,
-                    chain_id=CHAIN_ID,
+                    chain_id=chain_id,
                     price_eth=wei_to_eth_str(price_wei),
                     price_wei=str(price_wei),
                     seller_address=event.get("seller") or "",
                     is_sold=0,
                 )
             case "ListingSold":
-                mark_listing_sold_record(token_id=event["tokenId"], nft_address=normalized_address, chain_id=CHAIN_ID)
+                mark_listing_sold_record(token_id=event["tokenId"], nft_address=normalized_address, chain_id=chain_id)
 
 
 def run_indexer() -> None:
     """
     Public entrypoint that can be called during FastAPI startup or manually.
+    Indexes all configured chains.
     """
 
     init_db()
     reset_listings_table()
 
-    if USE_MOCK_EVENTS:
-        logger.info("USE_MOCK_EVENTS=true — seeding listings from built-in mock dataset.")
-        events = simulate_event_stream()
-    else:
-        # Fail fast with a clear explanation if env vars are misconfigured.
-        try:
-            validate_chain_configuration()
-        except ValueError as exc:
-            logger.error("Live-chain indexing disabled due to invalid configuration: %s", exc)
-            raise RuntimeError(
-                f"Cannot run live-chain indexer: {exc}. "
-                "Either fix the environment variables or set USE_MOCK_EVENTS=true."
-            ) from exc
-
-        logger.info(
-            "USE_MOCK_EVENTS=false — fetching real events from chain. "
-            "RPC URL: %s, contract: %s, lookback: %d blocks",
-            RPC_URL,
-            MARKETPLACE_ADDRESS,
-            BLOCK_LOOKBACK,
-        )
-        events = fetch_contract_events(web3_client())
-    process_events(events)
+    for chain_cfg in INDEXED_CHAINS:
+        chain_name = chain_cfg["name"]
+        chain_id = chain_cfg["chain_id"]
+        
+        if USE_MOCK_EVENTS:
+            logger.info(f"USE_MOCK_EVENTS=true — seeding mock listings for {chain_name} ({chain_id})")
+            events = simulate_event_stream(chain_id)
+        else:
+            try:
+                validate_chain_configuration(chain_cfg)
+                logger.info(f"Indexing chain: {chain_name} (id: {chain_id}, rpc: {chain_cfg['rpc_url']})")
+                events = fetch_contract_events(chain_cfg)
+            except Exception as exc:
+                logger.error(f"Failed to index chain {chain_name}: {exc}")
+                continue
+        
+        process_events(events, chain_id)
 
 
 def get_active_listings() -> List[Listing]:
