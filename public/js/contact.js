@@ -498,11 +498,32 @@ const ownedNFTsModal = document.getElementById("ownedNFTsModal");
 const ownedNFTsGrid = document.getElementById("ownedNFTsGrid");
 const ownedEmptyState = document.getElementById("ownedEmptyState");
 const closeOwnedModal = document.getElementById("closeOwnedModal");
+const chainSelect = document.getElementById("chainSelect");
 
 let provider = null;
 let signer = null;
 let userAddress = null;
 let lastListings = [];
+
+if (chainSelect) {
+  chainSelect.innerHTML = "";
+  Object.keys(CHAINS).forEach((id) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = CHAINS[id].name;
+    chainSelect.appendChild(opt);
+  });
+  const persisted = localStorage.getItem("selectedChainId");
+  const initial = persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID;
+  chainSelect.value = String(initial);
+  updateChainConfig(initial);
+  chainSelect.addEventListener("change", (e) => {
+    const id = parseInt(e.target.value);
+    localStorage.setItem("selectedChainId", String(id));
+    updateChainConfig(id);
+    renderListings(lastListings);
+  });
+}
 
 walletButton.addEventListener("click", handleWalletButtonClick);
 viewOwnedBtn?.addEventListener("click", viewOwnedNFTs);

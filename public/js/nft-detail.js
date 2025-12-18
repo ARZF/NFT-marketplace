@@ -153,11 +153,31 @@ const walletButton = document.getElementById("walletButton");
 const walletMenu = document.getElementById("walletMenu");
 const viewOwnedBtn = document.getElementById("viewOwnedBtn");
 const disconnectBtn = document.getElementById("disconnectBtn");
+const chainSelect = document.getElementById("chainSelect");
 
 let provider = null;
 let signer = null;
 let userAddress = null;
 let currentListing = null;
+
+if (chainSelect) {
+    chainSelect.innerHTML = "";
+    Object.keys(CHAINS).forEach((id) => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = CHAINS[id].name;
+        chainSelect.appendChild(opt);
+    });
+    const persisted = localStorage.getItem("selectedChainId");
+    const initial = chainIdParam ? Number(chainIdParam) : (persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID);
+    chainSelect.value = String(initial);
+    updateChainConfig(initial);
+    chainSelect.addEventListener("change", (e) => {
+        const id = parseInt(e.target.value);
+        localStorage.setItem("selectedChainId", String(id));
+        updateChainConfig(id);
+    });
+}
 
 // Get URL parameters
 const urlParams = new URLSearchParams(window.location.search);
@@ -206,6 +226,10 @@ async function connectWallet() {
         // Listen for network changes
         window.ethereum.on('chainChanged', (chainId) => {
             updateChainConfig(Number(chainId));
+            if (chainSelect) {
+                chainSelect.value = String(Number(chainId));
+                localStorage.setItem("selectedChainId", String(Number(chainId)));
+            }
         });
 
         walletButton.textContent = shortenAddress(userAddress);

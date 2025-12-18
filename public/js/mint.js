@@ -14,6 +14,7 @@ const API_REINDEX_URL = `${API_BASE}/api/reindex`;
 let MARKETPLACE_ADDRESS = getChainConfig(DEFAULT_CHAIN_ID).marketplace;
 let NFT_CONTRACT_ADDRESS = getChainConfig(DEFAULT_CHAIN_ID).nft;
 let CURRENCY = getChainConfig(DEFAULT_CHAIN_ID).currency;
+const chainSelect = document.getElementById("chainSelect");
 
 function updateChainConfig(chainId) {
     const config = getChainConfig(chainId);
@@ -136,6 +137,25 @@ let provider = null;
 let signer = null;
 let userAddress = null;
 
+if (chainSelect) {
+    chainSelect.innerHTML = "";
+    Object.keys(CHAINS).forEach((id) => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = CHAINS[id].name;
+        chainSelect.appendChild(opt);
+    });
+    const persisted = localStorage.getItem("selectedChainId");
+    const initial = persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID;
+    chainSelect.value = String(initial);
+    updateChainConfig(initial);
+    chainSelect.addEventListener("change", (e) => {
+        const id = parseInt(e.target.value);
+        localStorage.setItem("selectedChainId", String(id));
+        updateChainConfig(id);
+    });
+}
+
 walletButton?.addEventListener("click", handleWalletButtonClick);
 viewOwnedBtn?.addEventListener("click", () => {
     showNotification("نمایش NFT های شما فقط در صفحه اصلی فعال است.", {
@@ -167,6 +187,10 @@ async function connectWallet() {
         // Listen for network changes
         window.ethereum.on('chainChanged', (chainId) => {
             updateChainConfig(Number(chainId));
+            if (chainSelect) {
+                chainSelect.value = String(Number(chainId));
+                localStorage.setItem("selectedChainId", String(Number(chainId)));
+            }
         });
 
         walletButton.textContent = shortenAddress(userAddress);

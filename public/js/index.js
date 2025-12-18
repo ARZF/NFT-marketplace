@@ -278,11 +278,32 @@ const ownedNFTsModal = document.getElementById("ownedNFTsModal");
 const ownedNFTsGrid = document.getElementById("ownedNFTsGrid");
 const ownedEmptyState = document.getElementById("ownedEmptyState");
 const closeOwnedModal = document.getElementById("closeOwnedModal");
+const chainSelect = document.getElementById("chainSelect");
 
 let provider = null;
 let signer = null;
 let userAddress = null;
 let lastListings = [];
+
+if (chainSelect) {
+  chainSelect.innerHTML = "";
+  Object.keys(CHAINS).forEach((id) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = CHAINS[id].name;
+    chainSelect.appendChild(opt);
+  });
+  const persisted = localStorage.getItem("selectedChainId");
+  const initial = persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID;
+  chainSelect.value = String(initial);
+  updateChainConfig(initial);
+  chainSelect.addEventListener("change", (e) => {
+    const id = parseInt(e.target.value);
+    localStorage.setItem("selectedChainId", String(id));
+    updateChainConfig(id);
+    renderListings(lastListings);
+  });
+}
 
 walletButton.addEventListener("click", handleWalletButtonClick);
 viewOwnedBtn?.addEventListener("click", viewOwnedNFTs);
@@ -323,6 +344,10 @@ async function connectWallet() {
     // Listen for network changes
     window.ethereum.on('chainChanged', (chainId) => {
       updateChainConfig(Number(chainId));
+      if (chainSelect) {
+        chainSelect.value = String(Number(chainId));
+        localStorage.setItem("selectedChainId", String(Number(chainId)));
+      }
       fetchListings(); // Refresh listings for the new chain
     });
 
@@ -418,23 +443,24 @@ function renderOwnedNFTsModal(listings) {
       ).textContent = `فروشنده: ${shortenAddress(
         listing.seller_address
       )}`;
-      template.querySelector(
-        '[data-field="image"]'
-      ).style.backgroundImage = `url(${imageUrl})`;
+    template.querySelector(
+      '[data-field="image"]'
+    ).style.backgroundImage = `url(${imageUrl})`;
 
-      // Make card clickable to navigate to detail page
-      const card = template.querySelector("article");
-      card.style.cursor = "pointer";
-      card.classList.add("hover:border-emerald-500", "transition", "hover:shadow-lg", "hover:shadow-emerald-500/20");
-      card.addEventListener("click", (e) => {
-        // Don't navigate if clicking the buy button
-        if (e.target.closest(".buy-btn")) return;
-        const detailUrl = `/nft-detail.html?token_id=${listing.token_id}&nft_address=${encodeURIComponent(listing.nft_address)}&chain_id=${listing.chain_id}`;
-        window.location.href = detailUrl;
-      });
+    // Make card clickable to navigate to detail page
+    const card = template.querySelector("article");
+    card.style.cursor = "pointer";
+    card.classList.add("hover:border-emerald-500", "transition", "hover:shadow-lg", "hover:shadow-emerald-500/20");
+    card.addEventListener("click", (e) => {
+      // Don't navigate if clicking the buy button
+      if (e.target.closest(".buy-btn")) return;
+      const detailUrl = `/nft-detail.html?token_id=${listing.token_id}&nft_address=${encodeURIComponent(listing.nft_address)}&chain_id=${listing.chain_id}`;
+      window.location.href = detailUrl;
+    });
 
+      const buyButton = template.querySelector(".buy-btn");
       buyButton.addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent card click
+        e.stopPropagation();
         handleBuy(listing, buyButton);
       });
       ownedNFTsGrid.appendChild(template);
