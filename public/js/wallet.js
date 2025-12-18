@@ -259,7 +259,7 @@ async function handleMintForm(event) {
     const formData = new FormData(mintForm);
     formData.set("file", mintImageInput.files[0]);
 
-    try {
+        try {
         if (!signer) {
             await connectWallet();
         }
@@ -268,8 +268,7 @@ async function handleMintForm(event) {
             return;
         }
 
-        // Reload config in case it changed
-        await loadBackendConfig();
+        // We use the local CHAINS config now
         const valid = await validateConfig();
         if (!valid) {
             return;
@@ -303,28 +302,39 @@ async function handleMintForm(event) {
         }
         const priceWei = ethers.parseUnits(priceEth.toString(), 18);
 
-        setMintStatus("Minting NFT on-chain...", "info");
-        const nft = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
-        const txMint = await nft.mint(tokenURI);
-        const receiptMint = await txMint.wait();
+                setMintStatus("Minting NFT on-chain...", "info");
+                const nft = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
+                const txMint = await nft.mint(tokenURI);
+                const receiptMint = await txMint.wait();
 
-        let mintedTokenId = null;
+                console.log("Mint transaction receipt logs:", receiptMint.logs);
+                console.log("Looking for logs from NFT address:", NFT_CONTRACT_ADDRESS);
 
-        // Try to find parsed Transfer event using the contract interface
-        for (const log of receiptMint.logs ?? []) {
-            // only consider logs from our NFT contract
-            if (log.address.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase()) continue;
-            try {
-                const parsed = nft.interface.parseLog(log);
-                if (parsed && parsed.name === "Transfer") {
-                    // parsed.args[2] is tokenId (Transfer(address,address,uint256))
-                    mintedTokenId = parsed.args.tokenId ?? parsed.args[2];
-                    break;
+                let mintedTokenId = null;
+
+                // Try to find parsed Transfer event using the contract interface
+                for (const log of receiptMint.logs ?? []) {
+                    // only consider logs from our NFT contract
+                    if (log.address.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase()) {
+                        console.log("Skipping log from different address:", log.address);
+                        continue;
+                    }
+                    try {
+                        const parsed = nft.interface.parseLog(log);
+                        console.log("Parsed log:", parsed);
+                        if (parsed && (parsed.name === "Transfer" || parsed.topic === ERC721_TRANSFER_TOPIC)) {
+                            // parsed.args[2] is tokenId (Transfer(address,address,uint256))
+                            mintedTokenId = parsed.args.tokenId ?? parsed.args[2];
+                            if (mintedTokenId !== null) {
+                                console.log("Found tokenId:", mintedTokenId.toString());
+                                break;
+                            }
+                        }
+                    } catch (e) {
+                        // not a log we can parse with this interface — ignore
+                        console.warn("Could not parse log:", e);
+                    }
                 }
-            } catch (e) {
-                // not a log we can parse with this interface — ignore
-            }
-        }
 
         if (mintedTokenId === null) {
             throw new Error("Unable to determine minted tokenId from receipt logs");
@@ -397,19 +407,23 @@ function shortenAddress(address = "") {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-async function loadBackendConfig() {
-    try {
-        const resp = await fetch(`${API_BASE}/api/config`);
-        if (!resp.ok) return;
-        const cfg = await resp.json();
-        if (cfg?.marketplaceAddress) {
-            MARKETPLACE_ADDRESS = cfg.marketplaceAddress;
+        async function loadBackendConfig() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/config`);
+                if (!resp.ok) return;
+                const cfg = await resp.json();
+                console.log("Backend config received:", cfg);
+                // We prioritize local CHAINS config, so we don't overwrite here anymore
+                // if (cfg?.marketplaceAddress) {
+                //     MARKETPLACE_ADDRESS = cfg.marketplaceAddress;
+                // }
+                // if (cfg?.nftContractAddress) {
+                //     NFT_CONTRACT_ADDRESS = cfg.nftContractAddress;
+                // }
+            } catch (e) {
+                console.warn("Could not load backend config:", e);
+            }
         }
-        if (cfg?.nftContractAddress) {
-            NFT_CONTRACT_ADDRESS = cfg.nftContractAddress;
-        }
-    } catch { }
-}
 
 async function validateConfig() {
     if (!NFT_CONTRACT_ADDRESS || !MARKETPLACE_ADDRESS) {

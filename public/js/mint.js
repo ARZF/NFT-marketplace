@@ -210,10 +210,12 @@ async function loadBackendConfig() {
         const resp = await fetch(API_CONFIG_URL);
         if (!resp.ok) return;
         const cfg = await resp.json();
-        if (cfg?.marketplaceAddress) MARKETPLACE_ADDRESS = cfg.marketplaceAddress;
-        if (cfg?.nftContractAddress) NFT_CONTRACT_ADDRESS = cfg.nftContractAddress;
+        console.log("Backend config received:", cfg);
+        // We prioritize local CHAINS config, so we don't overwrite here anymore
+        // if (cfg?.marketplaceAddress) MARKETPLACE_ADDRESS = cfg.marketplaceAddress;
+        // if (cfg?.nftContractAddress) NFT_CONTRACT_ADDRESS = cfg.nftContractAddress;
     } catch (e) {
-        console.warn(e);
+        console.warn("Could not load backend config:", e);
     }
 }
 
@@ -295,7 +297,7 @@ async function handleMintForm(event) {
             return;
         }
 
-        await loadBackendConfig();
+        // We use the local CHAINS config now
         const valid = await validateConfig();
         if (!valid) return;
 
@@ -327,17 +329,32 @@ async function handleMintForm(event) {
         const txMint = await nft.mint(tokenURI);
         const receiptMint = await txMint.wait();
 
+        console.log("Mint transaction receipt logs:", receiptMint.logs);
+        console.log("Looking for logs from NFT address:", NFT_CONTRACT_ADDRESS);
+
         let mintedTokenId = null;
         for (const log of receiptMint.logs ?? []) {
-            if (log.address.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase())
+            // Check if log is from our NFT contract
+            if (log.address.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase()) {
+                console.log("Skipping log from different address:", log.address);
                 continue;
+            }
+
             try {
                 const parsed = nft.interface.parseLog(log);
-                if (parsed && parsed.name === "Transfer") {
+                console.log("Parsed log:", parsed);
+                if (parsed && (parsed.name === "Transfer" || parsed.topic === ERC721_TRANSFER_TOPIC)) {
+                    // In ethers v6, parsed.args is a Result object
+                    // Standard Transfer is (from, to, tokenId)
                     mintedTokenId = parsed.args.tokenId ?? parsed.args[2];
-                    break;
+                    if (mintedTokenId !== null) {
+                        console.log("Found tokenId:", mintedTokenId.toString());
+                        break;
+                    }
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.warn("Could not parse log:", e);
+            }
         }
         if (mintedTokenId === null)
             throw new Error("توکن ID پس از ضرب پیدا نشد");
