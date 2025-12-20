@@ -20,3 +20,29 @@ function getChainConfig(chainId) {
     return CHAINS[chainId] || CHAINS[DEFAULT_CHAIN_ID];
 }
 
+// Network configurations for MetaMask
+const NETWORK_CONFIGS = {
+    11155111: { // Sepolia
+        chainId: '0xaa36a7', // 11155111 in hex
+        chainName: 'Sepolia',
+        nativeCurrency: {
+            name: 'Ether',
+            symbol: 'ETH',
+            decimals: 18,
+        },
+        rpcUrls: ['https://sepolia.infura.io/v3/'],
+        blockExplorerUrls: ['https://sepolia.etherscan.io'],
+    },
+    84532: { // Base Sepolia
+        chainId: '0x14a34', // 84532 in hex
+        chainName: 'Base Sepolia',
+        nativeCurrency: {
+            name: 'Ether',
+            symbol: 'ETH',
+            decimals: 18,
+        },
+        rpcUrls: ['https://sepolia.base.org'],
+        blockExplorerUrls: ['https://sepolia-explorer.base.org'],
+    },
+};
+

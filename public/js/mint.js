@@ -137,6 +137,76 @@ let provider = null;
 let signer = null;
 let userAddress = null;
 
+// Function to switch network in MetaMask
+async function switchNetwork(chainId) {
+    if (!window.ethereum) {
+        showNotification(
+            "MetaMask یا کیف‌پول EIP-1193 نصب نیست.",
+            { type: "error", title: "کیف‌پول یافت نشد" }
+        );
+        return false;
+    }
+
+    const hexChainId = `0x${chainId.toString(16)}`;
+    const networkConfig = NETWORK_CONFIGS[chainId];
+
+    if (!networkConfig) {
+        showNotification(
+            `پیکربندی شبکه برای Chain ID ${chainId} یافت نشد.`,
+            { type: "error", title: "خطا" }
+        );
+        return false;
+    }
+
+    try {
+        // Try to switch to the network
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: hexChainId }],
+        });
+        return true;
+    } catch (switchError) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902 || switchError.code === -32603) {
+            try {
+                // Add the network to MetaMask
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: hexChainId,
+                        chainName: networkConfig.chainName,
+                        nativeCurrency: networkConfig.nativeCurrency,
+                        rpcUrls: networkConfig.rpcUrls,
+                        blockExplorerUrls: networkConfig.blockExplorerUrls,
+                    }],
+                });
+                return true;
+            } catch (addError) {
+                console.error('Error adding network:', addError);
+                showNotification(
+                    `افزودن شبکه به MetaMask ناموفق بود: ${addError.message}`,
+                    { type: "error", title: "خطا" }
+                );
+                return false;
+            }
+        } else if (switchError.code === 4001) {
+            // User rejected the request
+            showNotification(
+                "تغییر شبکه توسط کاربر رد شد.",
+                { type: "info" }
+            );
+            return false;
+        } else {
+            console.error('Error switching network:', switchError);
+            showNotification(
+                `تغییر شبکه ناموفق بود: ${switchError.message}`,
+                { type: "error", title: "خطا" }
+            );
+            return false;
+        }
+    }
+}
+
 if (chainSelect) {
     chainSelect.innerHTML = "";
     Object.keys(CHAINS).forEach((id) => {
@@ -149,8 +219,27 @@ if (chainSelect) {
     const initial = persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID;
     chainSelect.value = String(initial);
     updateChainConfig(initial);
-    chainSelect.addEventListener("change", (e) => {
+
+    chainSelect.addEventListener("change", async (e) => {
         const id = parseInt(e.target.value);
+
+        // If wallet is connected, switch network in MetaMask
+        if (signer && userAddress && window.ethereum) {
+            const switched = await switchNetwork(id);
+            if (!switched) {
+                // Revert the select to previous value if switch failed
+                try {
+                    const currentNetwork = await provider.getNetwork();
+                    chainSelect.value = String(Number(currentNetwork.chainId));
+                } catch (err) {
+                    // If we can't get current network, revert to persisted value
+                    const persisted = localStorage.getItem("selectedChainId");
+                    chainSelect.value = persisted || String(DEFAULT_CHAIN_ID);
+                }
+                return;
+            }
+        }
+
         localStorage.setItem("selectedChainId", String(id));
         updateChainConfig(id);
     });
@@ -182,14 +271,26 @@ async function connectWallet() {
         userAddress = await signer.getAddress();
 
         const network = await provider.getNetwork();
-        updateChainConfig(Number(network.chainId));
+        const currentChainId = Number(network.chainId);
+
+        // Update chain select to match MetaMask network
+        if (chainSelect) {
+            // Check if the current network is in our supported chains
+            if (CHAINS[currentChainId]) {
+                chainSelect.value = String(currentChainId);
+                localStorage.setItem("selectedChainId", String(currentChainId));
+            }
+        }
+
+        updateChainConfig(currentChainId);
 
         // Listen for network changes
         window.ethereum.on('chainChanged', (chainId) => {
-            updateChainConfig(Number(chainId));
-            if (chainSelect) {
-                chainSelect.value = String(Number(chainId));
-                localStorage.setItem("selectedChainId", String(Number(chainId)));
+            const newChainId = Number(chainId);
+            updateChainConfig(newChainId);
+            if (chainSelect && CHAINS[newChainId]) {
+                chainSelect.value = String(newChainId);
+                localStorage.setItem("selectedChainId", String(newChainId));
             }
         });
 
