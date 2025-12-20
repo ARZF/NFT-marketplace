@@ -314,6 +314,12 @@ async function handleMintForm(event) {
     formData.append("description", mintDescriptionInput.value || "");
     formData.append("price", mintPriceInput.value || "");
 
+    // Get collection from form if available
+    const mintCollectionInput = document.getElementById("mintCollection");
+    if (mintCollectionInput) {
+        formData.append("collection", mintCollectionInput.value || "");
+    }
+
     try {
         if (!signer) await connectWallet();
         if (!signer) {

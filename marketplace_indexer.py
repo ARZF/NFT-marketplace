@@ -126,6 +126,7 @@ class Listing:
     description: Optional[str] = None
     image_url: Optional[str] = None
     token_uri: Optional[str] = None
+    collection: Optional[str] = None
 
     def to_dict(self) -> Dict[str, object]:
         return asdict(self)
@@ -249,6 +250,7 @@ def enrich_listing_with_metadata(listing: Listing) -> Listing:
         if metadata:
             listing.name = metadata.get("name", f"Token #{listing.token_id}")
             listing.description = metadata.get("description", "")
+            listing.collection = metadata.get("collection")
             
             # Handle image field - could be IPFS URL or HTTPS
             image = metadata.get("image", "")
@@ -456,6 +458,7 @@ def get_active_listings() -> List[Listing]:
             description=safe_get("description"),
             image_url=safe_get("image_url"),
             token_uri=safe_get("token_uri"),
+            collection=safe_get("collection"),
         )
         # Only fetch if metadata is missing
         if not listing.name or not listing.image_url:
@@ -475,6 +478,7 @@ def get_active_listings() -> List[Listing]:
                     description=listing.description,
                     image_url=listing.image_url,
                     token_uri=listing.token_uri,
+                    collection=listing.collection,
                 )
         listings.append(listing)
     return listings

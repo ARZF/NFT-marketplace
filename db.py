@@ -74,6 +74,10 @@ def init_db() -> None:
         conn.execute("ALTER TABLE listings ADD COLUMN chain_id INTEGER NOT NULL DEFAULT 11155111")
     except sqlite3.OperationalError:
         pass
+    try:
+        conn.execute("ALTER TABLE listings ADD COLUMN collection TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     conn.commit()
     _is_initialized = True
 
@@ -98,14 +102,15 @@ def upsert_listing_record(
     description: Optional[str] = None,
     image_url: Optional[str] = None,
     token_uri: Optional[str] = None,
+    collection: Optional[str] = None,
 ) -> None:
     init_db()
     conn = get_connection()
     with conn:
         conn.execute(
             """
-            INSERT INTO listings (token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO listings (token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri, collection)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(token_id, nft_address, chain_id) DO UPDATE SET
                 price_eth=excluded.price_eth,
                 price_wei=excluded.price_wei,
@@ -114,9 +119,10 @@ def upsert_listing_record(
                 name=COALESCE(excluded.name, listings.name),
                 description=COALESCE(excluded.description, listings.description),
                 image_url=COALESCE(excluded.image_url, listings.image_url),
-                token_uri=COALESCE(excluded.token_uri, listings.token_uri);
+                token_uri=COALESCE(excluded.token_uri, listings.token_uri),
+                collection=COALESCE(excluded.collection, listings.collection);
             """,
-            (token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri),
+            (token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri, collection),
         )
 
 
@@ -139,7 +145,7 @@ def fetch_active_listing_rows() -> list[sqlite3.Row]:
     conn = get_connection()
     cursor = conn.execute(
         """
-        SELECT token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri
+        SELECT token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri, collection
         FROM listings
         WHERE is_sold = 0
         ORDER BY id DESC;

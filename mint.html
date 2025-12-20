@@ -133,7 +133,8 @@
             </button>
           </div>
         </div>
-        <select id="chainSelect" class="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 hidden sm:block"></select>
+        <select id="chainSelect"
+          class="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 hidden sm:block"></select>
       </div>
     </div>
   </header>
@@ -151,6 +152,21 @@
         <label for="mintDescription" class="block text-sm">توضیحات</label>
         <textarea id="mintDescription" rows="3"
           class="w-full p-2 bg-slate-800 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+      </div>
+      <div>
+        <label for="mintCollection" class="block text-sm">مجموعه</label>
+        <select id="mintCollection"
+          class="w-full p-2 bg-slate-800 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-200">
+          <option value="">انتخاب مجموعه (اختیاری)</option>
+          <option value="gaming">بازی</option>
+          <option value="art">هنر</option>
+          <option value="music">موسیقی</option>
+          <option value="sports">ورزش</option>
+          <option value="photography">عکاسی</option>
+          <option value="collectibles">کلکسیونی</option>
+          <option value="virtual-worlds">جهان مجازی</option>
+          <option value="utility">ابزاری</option>
+        </select>
       </div>
       <div>
         <label for="mintImage" class="block text-sm">فایل تصویر</label>

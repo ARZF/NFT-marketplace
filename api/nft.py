@@ -12,6 +12,7 @@ async def upload_to_ipfs(
     file: UploadFile = File(...),
     name: str = Form(...),
     description: str = Form(""),
+    collection: str = Form(""),
 ):
     try:
         file_bytes = await file.read()
@@ -23,6 +24,10 @@ async def upload_to_ipfs(
             "description": description,
             "image": f"ipfs://{image_cid}",
         }
+        
+        # Add collection to metadata if provided
+        if collection:
+            metadata["collection"] = collection
         
         # Upload metadata JSON to IPFS
         metadata_json = json.dumps(metadata)
