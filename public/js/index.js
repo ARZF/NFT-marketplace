@@ -300,9 +300,9 @@ async function switchNetwork(chainId) {
   }
 
   const hexChainId = `0x${chainId.toString(16)}`;
-  const networkConfig = NETWORK_CONFIGS[chainId];
+  const chainConfig = CHAINS[chainId];
 
-  if (!networkConfig) {
+  if (!chainConfig) {
     showNotification(
       `پیکربندی شبکه برای Chain ID ${chainId} یافت نشد.`,
       {
@@ -330,10 +330,10 @@ async function switchNetwork(chainId) {
           method: 'wallet_addEthereumChain',
           params: [{
             chainId: hexChainId,
-            chainName: networkConfig.chainName,
-            nativeCurrency: networkConfig.nativeCurrency,
-            rpcUrls: networkConfig.rpcUrls,
-            blockExplorerUrls: networkConfig.blockExplorerUrls,
+            chainName: chainConfig.chainName,
+            nativeCurrency: chainConfig.nativeCurrency,
+            rpcUrls: chainConfig.rpcUrls,
+            blockExplorerUrls: chainConfig.blockExplorerUrls,
           }],
         });
         return true;
