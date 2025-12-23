@@ -458,12 +458,12 @@ async function getQuote(amountIn) {
         return;
     }
 
-    // Use native token address for ETH (Relay uses native token address)
+    // Use zero address for native ETH
     const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000'
-        ? 'native'
+        ? '0x0000000000000000000000000000000000000000'
         : fromToken.address;
     const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000'
-        ? 'native'
+        ? '0x0000000000000000000000000000000000000000'
         : toToken.address;
 
     if (tokenIn === tokenOut) {
@@ -476,19 +476,23 @@ async function getQuote(amountIn) {
     const amountInWei = ethers.parseUnits(amountIn.toString(), decimalsIn);
 
     try {
-        // Call Relay API for quote
+        // Call Relay API for quote with correct field names
         const quoteResponse = await fetch(`${RELAY_API_URL}/quote`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                fromChainId: currentChainId,
-                toChainId: currentChainId, // Same chain swap
-                fromToken: tokenIn,
-                toToken: tokenOut,
-                fromAmount: amountInWei.toString(),
-                userAddress: userAddress
+                user: userAddress,
+                originChainId: currentChainId,
+                destinationChainId: currentChainId, // Same chain swap
+                originCurrency: tokenIn,
+                destinationCurrency: tokenOut,
+                recipient: userAddress,
+                tradeType: "EXACT_INPUT",
+                amount: amountInWei.toString(),
+                referrer: "relay.link/swap",
+                useExternalLiquidity: false
             })
         });
 
@@ -499,12 +503,30 @@ async function getQuote(amountIn) {
 
         const quoteData = await quoteResponse.json();
 
-        if (!quoteData.toAmount) {
-            throw new Error("Invalid quote response");
+        // Relay returns destinationAmount in the response
+        // Check if we have steps with items
+        if (!quoteData.steps || !quoteData.steps[0] || !quoteData.steps[0].items || !quoteData.steps[0].items[0]) {
+            throw new Error("Invalid quote response structure");
         }
 
+        // Extract destination amount from quote data
+        // The amount might be in the quote data or we need to calculate from steps
         const decimalsOut = toToken.decimals || 18;
-        const amountOut = ethers.formatUnits(quoteData.toAmount, decimalsOut);
+        let amountOut = null;
+
+        // Try to get destinationAmount from quote data (check multiple possible locations)
+        if (quoteData.destinationAmount) {
+            amountOut = ethers.formatUnits(quoteData.destinationAmount, decimalsOut);
+        } else if (quoteData.quote && quoteData.quote.destinationAmount) {
+            amountOut = ethers.formatUnits(quoteData.quote.destinationAmount, decimalsOut);
+        } else {
+            // If we can't get the exact amount, show placeholder
+            // The actual amount will be determined when executing the swap
+            toAmount.value = "...";
+            swapInfo.classList.add("hidden");
+            return;
+        }
+
         toAmount.value = parseFloat(amountOut).toFixed(6);
 
         // Calculate exchange rate
@@ -512,12 +534,16 @@ async function getQuote(amountIn) {
         exchangeRate.textContent = `1 ${fromToken.symbol} = ${rate.toFixed(6)} ${toToken.symbol}`;
 
         // Use minimum amount from Relay (already includes slippage)
-        const minReceiveAmount = ethers.formatUnits(quoteData.toAmountMin || quoteData.toAmount, decimalsOut);
+        const minAmount = quoteData.destinationAmountMin || quoteData.quote?.destinationAmountMin || quoteData.destinationAmount;
+        const minReceiveAmount = ethers.formatUnits(minAmount, decimalsOut);
         minReceive.textContent = `${parseFloat(minReceiveAmount).toFixed(6)} ${toToken.symbol}`;
 
         // Show fee if available
         if (quoteData.fee) {
             const feeAmount = ethers.formatUnits(quoteData.fee, decimalsOut);
+            document.getElementById("swapFee").textContent = `${parseFloat(feeAmount).toFixed(6)} ${toToken.symbol}`;
+        } else if (quoteData.quote?.fee) {
+            const feeAmount = ethers.formatUnits(quoteData.quote.fee, decimalsOut);
             document.getElementById("swapFee").textContent = `${parseFloat(feeAmount).toFixed(6)} ${toToken.symbol}`;
         }
 
@@ -549,18 +575,18 @@ async function executeSwap() {
         swapButton.textContent = "در حال پردازش...";
         setSwapStatus("در حال دریافت نرخ...", "info");
 
-        // Use native token address for ETH
+        // Use zero address for native ETH
         const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000'
-            ? 'native'
+            ? '0x0000000000000000000000000000000000000000'
             : fromToken.address;
         const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000'
-            ? 'native'
+            ? '0x0000000000000000000000000000000000000000'
             : toToken.address;
 
         const decimalsIn = fromToken.decimals || 18;
         const amountInWei = ethers.parseUnits(amount.toString(), decimalsIn);
 
-        // Get quote from Relay API
+        // Get quote from Relay API with correct field names
         setSwapStatus("در حال دریافت نرخ از Relay...", "info");
         const quoteResponse = await fetch(`${RELAY_API_URL}/quote`, {
             method: 'POST',
@@ -568,12 +594,16 @@ async function executeSwap() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                fromChainId: currentChainId,
-                toChainId: currentChainId,
-                fromToken: tokenIn,
-                toToken: tokenOut,
-                fromAmount: amountInWei.toString(),
-                userAddress: userAddress
+                user: userAddress,
+                originChainId: currentChainId,
+                destinationChainId: currentChainId,
+                originCurrency: tokenIn,
+                destinationCurrency: tokenOut,
+                recipient: userAddress,
+                tradeType: "EXACT_INPUT",
+                amount: amountInWei.toString(),
+                referrer: "relay.link/swap",
+                useExternalLiquidity: false
             })
         });
 
@@ -591,29 +621,43 @@ async function executeSwap() {
         setSwapStatus(`در حال اجرای ${quoteData.steps.length} مرحله معامله...`, "info");
 
         // Execute each step from Relay
+        // Relay returns steps[0].items[0].data with to, data, value
         let lastTxHash = null;
         for (let i = 0; i < quoteData.steps.length; i++) {
             const step = quoteData.steps[i];
-            setSwapStatus(`مرحله ${i + 1} از ${quoteData.steps.length}...`, "info");
 
-            // Prepare transaction
-            const txParams = {
-                to: step.to,
-                data: step.data,
-                value: step.value ? BigInt(step.value) : 0n
-            };
+            // Each step can have multiple items
+            if (!step.items || step.items.length === 0) {
+                continue;
+            }
 
-            // Send transaction
-            const tx = await signer.sendTransaction(txParams);
-            lastTxHash = tx.hash;
+            for (let j = 0; j < step.items.length; j++) {
+                const item = step.items[j];
+                if (!item.data) {
+                    continue;
+                }
 
-            setSwapStatus(`مرحله ${i + 1} ارسال شد. در حال انتظار... (${shortenAddress(tx.hash)})`, "info");
+                setSwapStatus(`مرحله ${i + 1}-${j + 1} از ${quoteData.steps.length}...`, "info");
 
-            // Wait for confirmation
-            const receipt = await tx.wait();
+                // Prepare transaction from item.data
+                const txParams = {
+                    to: item.data.to,
+                    data: item.data.data,
+                    value: item.data.value ? BigInt(item.data.value) : 0n
+                };
 
-            if (!receipt.status) {
-                throw new Error(`Transaction ${i + 1} failed`);
+                // Send transaction
+                const tx = await signer.sendTransaction(txParams);
+                lastTxHash = tx.hash;
+
+                setSwapStatus(`مرحله ${i + 1}-${j + 1} ارسال شد. در حال انتظار... (${shortenAddress(tx.hash)})`, "info");
+
+                // Wait for confirmation
+                const receipt = await tx.wait();
+
+                if (!receipt.status) {
+                    throw new Error(`Transaction ${i + 1}-${j + 1} failed`);
+                }
             }
         }
 
