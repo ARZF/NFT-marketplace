@@ -113,6 +113,14 @@ def create_app() -> FastAPI:
         """
         return FileResponse(str(Path(__file__).parent / "nft-detail.html"))
     
+    @app.get("/swap.html", include_in_schema=False)
+    async def swap_page() -> FileResponse:
+        """
+        Return the standalone swap page.
+        """
+        return FileResponse(str(Path(__file__).parent / "swap.html"))
+
+
     app.include_router(nft_router)
     
     return app
