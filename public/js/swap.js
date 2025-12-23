@@ -2,7 +2,7 @@
 // Uses Relay API for meta-aggregation swaps
 
 // Relay API Configuration
-const RELAY_API_URL = 'https://api.relay.link';
+const RELAY_API_URL = 'https://api.testnets.relay.link/quote/v2';
 
 // Chain-specific WETH addresses (for wrapping/unwrapping if needed)
 const WETH_ADDRESSES = {
@@ -458,13 +458,36 @@ async function getQuote(amountIn) {
         return;
     }
 
-    // Use zero address for native ETH
-    const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000'
-        ? '0x0000000000000000000000000000000000000000'
-        : fromToken.address;
-    const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000'
-        ? '0x0000000000000000000000000000000000000000'
-        : toToken.address;
+    // Checksum addresses and handle native ETH properly
+    let tokenIn, tokenOut;
+
+    if (fromToken.address === '0x0000000000000000000000000000000000000000') {
+        // For native ETH, use zero address
+        tokenIn = '0x0000000000000000000000000000000000000000';
+    } else {
+        // Checksum the address
+        try {
+            tokenIn = ethers.getAddress(fromToken.address);
+        } catch (e) {
+            console.error("Invalid fromToken address:", fromToken.address);
+            toAmount.value = "";
+            swapInfo.classList.add("hidden");
+            return;
+        }
+    }
+
+    if (toToken.address === '0x0000000000000000000000000000000000000000') {
+        tokenOut = '0x0000000000000000000000000000000000000000';
+    } else {
+        try {
+            tokenOut = ethers.getAddress(toToken.address);
+        } catch (e) {
+            console.error("Invalid toToken address:", toToken.address);
+            toAmount.value = "";
+            swapInfo.classList.add("hidden");
+            return;
+        }
+    }
 
     if (tokenIn === tokenOut) {
         toAmount.value = "";
@@ -477,18 +500,18 @@ async function getQuote(amountIn) {
 
     try {
         // Call Relay API for quote with correct field names
-        const quoteResponse = await fetch(`${RELAY_API_URL}/quote`, {
+        const quoteResponse = await fetch(RELAY_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                user: userAddress,
+                user: ethers.getAddress(userAddress), // Checksum user address
                 originChainId: currentChainId,
                 destinationChainId: currentChainId, // Same chain swap
                 originCurrency: tokenIn,
                 destinationCurrency: tokenOut,
-                recipient: userAddress,
+                recipient: ethers.getAddress(userAddress), // Checksum recipient address
                 tradeType: "EXACT_INPUT",
                 amount: amountInWei.toString(),
                 referrer: "relay.link/swap",
@@ -498,7 +521,19 @@ async function getQuote(amountIn) {
 
         if (!quoteResponse.ok) {
             const errorData = await quoteResponse.json().catch(() => ({}));
-            throw new Error(errorData.message || `Quote failed: ${quoteResponse.status}`);
+            // Log full error for debugging
+            console.error("Relay API Error:", errorData);
+
+            // Provide more specific error messages
+            let errorMessage = errorData.message || errorData.error || `Quote failed: ${quoteResponse.status}`;
+
+            if (errorData.code === 'INVALID_INPUT_CURRENCY' || errorData.code === 'INVALID_OUTPUT_CURRENCY') {
+                errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
+            } else if (errorData.message && errorData.message.includes('currency')) {
+                errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
+            }
+
+            throw new Error(errorMessage);
         }
 
         const quoteData = await quoteResponse.json();
@@ -575,31 +610,46 @@ async function executeSwap() {
         swapButton.textContent = "در حال پردازش...";
         setSwapStatus("در حال دریافت نرخ...", "info");
 
-        // Use zero address for native ETH
-        const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000'
-            ? '0x0000000000000000000000000000000000000000'
-            : fromToken.address;
-        const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000'
-            ? '0x0000000000000000000000000000000000000000'
-            : toToken.address;
+        // Checksum addresses and handle native ETH properly
+        let tokenIn, tokenOut;
+
+        if (fromToken.address === '0x0000000000000000000000000000000000000000') {
+            tokenIn = '0x0000000000000000000000000000000000000000';
+        } else {
+            try {
+                tokenIn = ethers.getAddress(fromToken.address);
+            } catch (e) {
+                throw new Error(`آدرس توکن ورودی نامعتبر است: ${fromToken.address}`);
+            }
+        }
+
+        if (toToken.address === '0x0000000000000000000000000000000000000000') {
+            tokenOut = '0x0000000000000000000000000000000000000000';
+        } else {
+            try {
+                tokenOut = ethers.getAddress(toToken.address);
+            } catch (e) {
+                throw new Error(`آدرس توکن خروجی نامعتبر است: ${toToken.address}`);
+            }
+        }
 
         const decimalsIn = fromToken.decimals || 18;
         const amountInWei = ethers.parseUnits(amount.toString(), decimalsIn);
 
         // Get quote from Relay API with correct field names
         setSwapStatus("در حال دریافت نرخ از Relay...", "info");
-        const quoteResponse = await fetch(`${RELAY_API_URL}/quote`, {
+        const quoteResponse = await fetch(RELAY_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                user: userAddress,
+                user: ethers.getAddress(userAddress), // Checksum user address
                 originChainId: currentChainId,
                 destinationChainId: currentChainId,
                 originCurrency: tokenIn,
                 destinationCurrency: tokenOut,
-                recipient: userAddress,
+                recipient: ethers.getAddress(userAddress), // Checksum recipient address
                 tradeType: "EXACT_INPUT",
                 amount: amountInWei.toString(),
                 referrer: "relay.link/swap",
@@ -609,7 +659,21 @@ async function executeSwap() {
 
         if (!quoteResponse.ok) {
             const errorData = await quoteResponse.json().catch(() => ({}));
-            throw new Error(errorData.message || `Quote failed: ${quoteResponse.status}`);
+            // Log full error for debugging
+            console.error("Relay API Error:", errorData);
+
+            // Provide more specific error messages
+            let errorMessage = errorData.message || errorData.error || `Quote failed: ${quoteResponse.status}`;
+
+            if (errorData.code === 'INVALID_INPUT_CURRENCY' || errorData.code === 'INVALID_OUTPUT_CURRENCY') {
+                errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
+            } else if (errorData.message && errorData.message.includes('currency')) {
+                errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
+            } else if (errorData.message && errorData.message.includes('validating')) {
+                errorMessage = `خطا در اعتبارسنجی درخواست. لطفاً دوباره تلاش کنید.`;
+            }
+
+            throw new Error(errorMessage);
         }
 
         const quoteData = await quoteResponse.json();
