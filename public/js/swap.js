@@ -1,18 +1,13 @@
-// Uniswap Swap Implementation for Sepolia and Base Sepolia
-// Uses Uniswap V3 SwapRouter contracts
+// Relay Swap Implementation for Sepolia and Base Sepolia
+// Uses Relay API for meta-aggregation swaps
 
-// Uniswap V3 Contract Addresses
-const UNISWAP_CONTRACTS = {
-    11155111: { // Sepolia
-        swapRouter: '0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E', // Uniswap V3 SwapRouter
-        quoter: '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6', // Uniswap V3 Quoter
-        weth: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', // WETH Sepolia
-    },
-    84532: { // Base Sepolia
-        swapRouter: '0x2626664c2603336E57B271c5C0b26F42126eED1B', // Uniswap V3 SwapRouter
-        quoter: '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a', // Uniswap V3 Quoter
-        weth: '0x4200000000000000000000000000000000000006', // WETH Base Sepolia
-    }
+// Relay API Configuration
+const RELAY_API_URL = 'https://api.relay.link';
+
+// Chain-specific WETH addresses (for wrapping/unwrapping if needed)
+const WETH_ADDRESSES = {
+    11155111: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14', // WETH Sepolia
+    84532: '0x4200000000000000000000000000000000000006', // WETH Base Sepolia
 };
 
 // Common Token Addresses for Testnets
@@ -41,17 +36,7 @@ const ERC20_ABI = [
     "function transfer(address to, uint256 amount) returns (bool)"
 ];
 
-const SWAP_ROUTER_ABI = [
-    "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) external payable returns (uint256 amountOut)",
-    "function exactInput((bytes path, address recipient, uint256 deadline, uint256 amountIn, uint256 amountOutMinimum) external payable returns (uint256 amountOut)",
-    "function exactOutputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 deadline, uint256 amountOut, uint256 amountInMaximum, uint160 sqrtPriceLimitX96)) external payable returns (uint256 amountIn)",
-    "function multicall(uint256 deadline, bytes[] calldata data) external payable returns (bytes[] memory results)"
-];
-
-const QUOTER_ABI = [
-    "function quoteExactInputSingle(address tokenIn, address tokenOut, uint24 fee, uint256 amountIn, uint160 sqrtPriceLimitX96) external returns (uint256 amountOut)",
-    "function quoteExactInput(bytes memory path, uint256 amountIn) external returns (uint256 amountOut, uint160[] memory sqrtPriceX96AfterList, uint32[] memory initializedTicksCrossedList, uint256 gasEstimate)"
-];
+// Relay doesn't require specific contract ABIs - it uses API calls
 
 const WETH_ABI = [
     "function deposit() payable",
@@ -103,7 +88,7 @@ function init() {
 
 function setupChainSelect() {
     if (!chainSelect) return;
-    
+
     chainSelect.innerHTML = "";
     Object.keys(CHAINS).forEach((id) => {
         const opt = document.createElement("option");
@@ -111,12 +96,12 @@ function setupChainSelect() {
         opt.textContent = CHAINS[id].name;
         chainSelect.appendChild(opt);
     });
-    
+
     const persisted = localStorage.getItem("selectedChainId");
     const initial = persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID;
     chainSelect.value = String(initial);
     currentChainId = initial;
-    
+
     chainSelect.addEventListener("change", async (e) => {
         const id = parseInt(e.target.value);
         if (signer && userAddress && window.ethereum) {
@@ -145,7 +130,7 @@ function setupEventListeners() {
     closeTokenModal?.addEventListener("click", closeTokenModalFunc);
     fromAmount?.addEventListener("input", debounce(handleAmountChange, 500));
     tokenSearch?.addEventListener("input", filterTokenList);
-    
+
     // Close modal on backdrop click
     tokenModal?.addEventListener("click", (e) => {
         if (e.target === tokenModal) closeTokenModalFunc();
@@ -155,14 +140,14 @@ function setupEventListeners() {
 function initializeTokens() {
     const tokens = COMMON_TOKENS[currentChainId] || COMMON_TOKENS[DEFAULT_CHAIN_ID];
     if (!tokens) return;
-    
+
     // Set default tokens
     fromToken = tokens.ETH;
     toToken = tokens.WETH || tokens.USDC;
-    
+
     fromTokenSymbol.textContent = fromToken.symbol;
     toTokenSymbol.textContent = toToken.symbol;
-    
+
     updateBalances();
 }
 
@@ -174,34 +159,34 @@ async function connectWallet() {
         });
         return;
     }
-    
+
     try {
         provider = new ethers.BrowserProvider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = await provider.getSigner();
         userAddress = await signer.getAddress();
-        
+
         const network = await provider.getNetwork();
         const networkChainId = Number(network.chainId);
-        
+
         if (chainSelect && CHAINS[networkChainId]) {
             chainSelect.value = String(networkChainId);
             localStorage.setItem("selectedChainId", String(networkChainId));
             currentChainId = networkChainId;
         }
-        
+
         walletButton.textContent = shortenAddress(userAddress);
         walletButton.classList.remove("bg-slate-100", "text-slate-900");
         walletButton.classList.add("bg-emerald-400", "text-slate-900");
         walletMenu?.classList.add("hidden");
-        
+
         showNotification("کیف‌پول متصل شد: " + shortenAddress(userAddress), {
             type: "success",
             duration: 3500,
         });
-        
+
         updateBalances();
-        
+
         // Listen for network changes
         window.ethereum.on('chainChanged', (chainId) => {
             const newChainId = Number(chainId);
@@ -213,7 +198,7 @@ async function connectWallet() {
             initializeTokens();
             updateBalances();
         });
-        
+
     } catch (error) {
         console.error("Wallet connection failed", error);
         showNotification("اتصال کیف‌پول ناموفق بود: " + (error?.message || ""), {
@@ -246,10 +231,10 @@ function disconnectWallet() {
 
 async function switchNetwork(chainId) {
     if (!window.ethereum) return false;
-    
+
     const hexChainId = `0x${chainId.toString(16)}`;
     const chainConfig = CHAINS[chainId];
-    
+
     if (!chainConfig) {
         showNotification(`پیکربندی شبکه برای Chain ID ${chainId} یافت نشد.`, {
             type: "error",
@@ -257,7 +242,7 @@ async function switchNetwork(chainId) {
         });
         return false;
     }
-    
+
     try {
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
@@ -306,7 +291,7 @@ async function updateBalances() {
         toBalance.textContent = "-";
         return;
     }
-    
+
     try {
         // Update from token balance
         if (fromToken.address === '0x0000000000000000000000000000000000000000') {
@@ -322,7 +307,7 @@ async function updateBalances() {
             const formatted = ethers.formatUnits(balance, decimals);
             fromBalance.textContent = parseFloat(formatted).toFixed(4);
         }
-        
+
         // Update to token balance
         if (toToken.address === '0x0000000000000000000000000000000000000000') {
             // ETH balance
@@ -356,12 +341,12 @@ function closeTokenModalFunc() {
 
 function populateTokenList() {
     if (!tokenList) return;
-    
+
     const tokens = COMMON_TOKENS[currentChainId] || COMMON_TOKENS[DEFAULT_CHAIN_ID];
     if (!tokens) return;
-    
+
     tokenList.innerHTML = "";
-    
+
     Object.values(tokens).forEach(token => {
         const tokenItem = document.createElement("button");
         tokenItem.className = "w-full p-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-right flex items-center justify-between transition";
@@ -380,7 +365,7 @@ function populateTokenList() {
 function filterTokenList() {
     const searchTerm = tokenSearch.value.toLowerCase();
     const items = tokenList.querySelectorAll("button");
-    
+
     items.forEach(item => {
         const text = item.textContent.toLowerCase();
         item.style.display = text.includes(searchTerm) ? "block" : "none";
@@ -395,7 +380,7 @@ function selectToken(token) {
         toToken = token;
         toTokenSymbol.textContent = token.symbol;
     }
-    
+
     closeTokenModalFunc();
     updateBalances();
     handleAmountChange();
@@ -405,14 +390,14 @@ function swapTokenPositions() {
     const temp = fromToken;
     fromToken = toToken;
     toToken = temp;
-    
+
     fromTokenSymbol.textContent = fromToken.symbol;
     toTokenSymbol.textContent = toToken.symbol;
-    
+
     const tempAmount = fromAmount.value;
     fromAmount.value = toAmount.value;
     toAmount.value = tempAmount;
-    
+
     updateBalances();
     handleAmountChange();
 }
@@ -422,7 +407,7 @@ function setMaxAmount() {
         showNotification("لطفاً ابتدا کیف‌پول را متصل کنید.", { type: "info" });
         return;
     }
-    
+
     if (fromToken.address === '0x0000000000000000000000000000000000000000') {
         // ETH - get balance and set (leave some for gas)
         provider.getBalance(userAddress).then(balance => {
@@ -445,18 +430,18 @@ function setMaxAmount() {
 
 async function handleAmountChange() {
     const amount = parseFloat(fromAmount.value);
-    
+
     if (!amount || amount <= 0 || !fromToken || !toToken) {
         toAmount.value = "";
         swapInfo.classList.add("hidden");
         return;
     }
-    
+
     if (!signer) {
         swapInfo.classList.add("hidden");
         return;
     }
-    
+
     try {
         await getQuote(amount);
     } catch (error) {
@@ -467,58 +452,82 @@ async function handleAmountChange() {
 }
 
 async function getQuote(amountIn) {
-    const contracts = UNISWAP_CONTRACTS[currentChainId];
-    if (!contracts) {
-        throw new Error("Uniswap contracts not configured for this chain");
+    if (!signer || !userAddress) {
+        toAmount.value = "";
+        swapInfo.classList.add("hidden");
+        return;
     }
-    
-    const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000' 
-        ? contracts.weth 
+
+    // Use native token address for ETH (Relay uses native token address)
+    const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000'
+        ? 'native'
         : fromToken.address;
-    const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000' 
-        ? contracts.weth 
+    const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000'
+        ? 'native'
         : toToken.address;
-    
+
     if (tokenIn === tokenOut) {
-        throw new Error("Cannot swap same token");
+        toAmount.value = "";
+        swapInfo.classList.add("hidden");
+        return;
     }
-    
-    const fee = 3000; // 0.3% fee tier
+
     const decimalsIn = fromToken.decimals || 18;
     const amountInWei = ethers.parseUnits(amountIn.toString(), decimalsIn);
-    
+
     try {
-        // Use Quoter contract to get quote
-        const quoter = new ethers.Contract(contracts.quoter, QUOTER_ABI, provider);
-        
-        // For ETH swaps, we need to use WETH
-        const quote = await quoter.quoteExactInputSingle.staticCall(
-            tokenIn,
-            tokenOut,
-            fee,
-            amountInWei,
-            0
-        );
-        
+        // Call Relay API for quote
+        const quoteResponse = await fetch(`${RELAY_API_URL}/quote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                fromChainId: currentChainId,
+                toChainId: currentChainId, // Same chain swap
+                fromToken: tokenIn,
+                toToken: tokenOut,
+                fromAmount: amountInWei.toString(),
+                userAddress: userAddress
+            })
+        });
+
+        if (!quoteResponse.ok) {
+            const errorData = await quoteResponse.json().catch(() => ({}));
+            throw new Error(errorData.message || `Quote failed: ${quoteResponse.status}`);
+        }
+
+        const quoteData = await quoteResponse.json();
+
+        if (!quoteData.toAmount) {
+            throw new Error("Invalid quote response");
+        }
+
         const decimalsOut = toToken.decimals || 18;
-        const amountOut = ethers.formatUnits(quote, decimalsOut);
+        const amountOut = ethers.formatUnits(quoteData.toAmount, decimalsOut);
         toAmount.value = parseFloat(amountOut).toFixed(6);
-        
+
         // Calculate exchange rate
         const rate = parseFloat(amountOut) / amountIn;
         exchangeRate.textContent = `1 ${fromToken.symbol} = ${rate.toFixed(6)} ${toToken.symbol}`;
-        
-        // Calculate minimum receive (0.5% slippage)
-        const minReceiveAmount = parseFloat(amountOut) * 0.995;
-        minReceive.textContent = `${minReceiveAmount.toFixed(6)} ${toToken.symbol}`;
-        
+
+        // Use minimum amount from Relay (already includes slippage)
+        const minReceiveAmount = ethers.formatUnits(quoteData.toAmountMin || quoteData.toAmount, decimalsOut);
+        minReceive.textContent = `${parseFloat(minReceiveAmount).toFixed(6)} ${toToken.symbol}`;
+
+        // Show fee if available
+        if (quoteData.fee) {
+            const feeAmount = ethers.formatUnits(quoteData.fee, decimalsOut);
+            document.getElementById("swapFee").textContent = `${parseFloat(feeAmount).toFixed(6)} ${toToken.symbol}`;
+        }
+
         swapInfo.classList.remove("hidden");
-        
+
     } catch (error) {
         console.error("Quote error:", error);
-        // If quoter fails, try to estimate
-        toAmount.value = "~";
+        toAmount.value = "";
         swapInfo.classList.add("hidden");
+        // Don't show error notification for quote failures, just hide the info
     }
 }
 
@@ -528,116 +537,101 @@ async function executeSwap() {
         await connectWallet();
         return;
     }
-    
+
     const amount = parseFloat(fromAmount.value);
     if (!amount || amount <= 0) {
         showNotification("لطفاً مقدار معتبری وارد کنید.", { type: "error" });
         return;
     }
-    
-    const contracts = UNISWAP_CONTRACTS[currentChainId];
-    if (!contracts) {
-        showNotification("Uniswap برای این شبکه پیکربندی نشده است.", { type: "error" });
-        return;
-    }
-    
+
     try {
         swapButton.disabled = true;
         swapButton.textContent = "در حال پردازش...";
-        setSwapStatus("در حال آماده‌سازی معامله...", "info");
-        
-        const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000' 
-            ? contracts.weth 
+        setSwapStatus("در حال دریافت نرخ...", "info");
+
+        // Use native token address for ETH
+        const tokenIn = fromToken.address === '0x0000000000000000000000000000000000000000'
+            ? 'native'
             : fromToken.address;
-        const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000' 
-            ? contracts.weth 
+        const tokenOut = toToken.address === '0x0000000000000000000000000000000000000000'
+            ? 'native'
             : toToken.address;
-        
-        const fee = 3000; // 0.3% fee tier
+
         const decimalsIn = fromToken.decimals || 18;
         const amountInWei = ethers.parseUnits(amount.toString(), decimalsIn);
-        const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 minutes
-        
-        // Get quote for minimum amount out
-        const quoter = new ethers.Contract(contracts.quoter, QUOTER_ABI, provider);
-        const quote = await quoter.quoteExactInputSingle.staticCall(
-            tokenIn,
-            tokenOut,
-            fee,
-            amountInWei,
-            0
-        );
-        
-        // Apply 0.5% slippage
-        const amountOutMinimum = quote * BigInt(995) / BigInt(1000);
-        
-        const router = new ethers.Contract(contracts.swapRouter, SWAP_ROUTER_ABI, signer);
-        
-        // Handle ETH input
-        if (fromToken.address === '0x0000000000000000000000000000000000000000') {
-            // ETH -> Token: Wrap ETH first, then swap
-            setSwapStatus("در حال تبدیل ETH به WETH...", "info");
-            const weth = new ethers.Contract(contracts.weth, WETH_ABI, signer);
-            const wrapTx = await weth.deposit({ value: amountInWei });
-            await wrapTx.wait();
-            
-            setSwapStatus("در حال تأیید WETH...", "info");
-            const approveTx = await weth.approve(contracts.swapRouter, amountInWei);
-            await approveTx.wait();
-        } else {
-            // ERC20 -> Token: Approve first
-            setSwapStatus("در حال تأیید توکن...", "info");
-            const tokenContract = new ethers.Contract(fromToken.address, ERC20_ABI, signer);
-            const allowance = await tokenContract.allowance(userAddress, contracts.swapRouter);
-            
-            if (allowance < amountInWei) {
-                const approveTx = await tokenContract.approve(contracts.swapRouter, amountInWei);
-                await approveTx.wait();
+
+        // Get quote from Relay API
+        setSwapStatus("در حال دریافت نرخ از Relay...", "info");
+        const quoteResponse = await fetch(`${RELAY_API_URL}/quote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                fromChainId: currentChainId,
+                toChainId: currentChainId,
+                fromToken: tokenIn,
+                toToken: tokenOut,
+                fromAmount: amountInWei.toString(),
+                userAddress: userAddress
+            })
+        });
+
+        if (!quoteResponse.ok) {
+            const errorData = await quoteResponse.json().catch(() => ({}));
+            throw new Error(errorData.message || `Quote failed: ${quoteResponse.status}`);
+        }
+
+        const quoteData = await quoteResponse.json();
+
+        if (!quoteData.steps || quoteData.steps.length === 0) {
+            throw new Error("No swap steps returned from Relay");
+        }
+
+        setSwapStatus(`در حال اجرای ${quoteData.steps.length} مرحله معامله...`, "info");
+
+        // Execute each step from Relay
+        let lastTxHash = null;
+        for (let i = 0; i < quoteData.steps.length; i++) {
+            const step = quoteData.steps[i];
+            setSwapStatus(`مرحله ${i + 1} از ${quoteData.steps.length}...`, "info");
+
+            // Prepare transaction
+            const txParams = {
+                to: step.to,
+                data: step.data,
+                value: step.value ? BigInt(step.value) : 0n
+            };
+
+            // Send transaction
+            const tx = await signer.sendTransaction(txParams);
+            lastTxHash = tx.hash;
+
+            setSwapStatus(`مرحله ${i + 1} ارسال شد. در حال انتظار... (${shortenAddress(tx.hash)})`, "info");
+
+            // Wait for confirmation
+            const receipt = await tx.wait();
+
+            if (!receipt.status) {
+                throw new Error(`Transaction ${i + 1} failed`);
             }
         }
-        
-        setSwapStatus("در حال اجرای معامله...", "info");
-        
-        const params = {
-            tokenIn: tokenIn,
-            tokenOut: tokenOut,
-            fee: fee,
-            recipient: userAddress,
-            deadline: deadline,
-            amountIn: amountInWei,
-            amountOutMinimum: amountOutMinimum,
-            sqrtPriceLimitX96: 0
-        };
-        
-        const tx = await router.exactInputSingle(params);
-        setSwapStatus(`معامله ارسال شد. در حال انتظار... (${shortenAddress(tx.hash)})`, "info");
-        
-        const receipt = await tx.wait();
-        
-        // If output is WETH and user wants ETH, unwrap
-        if (toToken.address === '0x0000000000000000000000000000000000000000' && tokenOut === contracts.weth) {
-            setSwapStatus("در حال تبدیل WETH به ETH...", "info");
-            const weth = new ethers.Contract(contracts.weth, WETH_ABI, signer);
-            const wethBalance = await weth.balanceOf(userAddress);
-            const unwrapTx = await weth.withdraw(wethBalance);
-            await unwrapTx.wait();
-        }
-        
-        setSwapStatus(`معامله موفق! Hash: ${tx.hash}`, "success");
+
+        setSwapStatus(`معامله موفق! Hash: ${lastTxHash}`, "success");
         showNotification(`معامله با موفقیت انجام شد!`, {
             type: "success",
             title: "موفق",
             duration: 5000
         });
-        
+
         // Reset form
         fromAmount.value = "";
         toAmount.value = "";
         swapInfo.classList.add("hidden");
-        
+
         // Update balances
         await updateBalances();
-        
+
     } catch (error) {
         console.error("Swap error:", error);
         setSwapStatus(`خطا: ${error.message}`, "error");
@@ -653,11 +647,11 @@ async function executeSwap() {
 
 function setSwapStatus(message, type) {
     if (!swapStatus) return;
-    
+
     swapStatus.classList.remove("hidden");
     swapStatus.textContent = message;
     swapStatus.className = "mt-4 p-3 rounded-lg text-sm text-right";
-    
+
     if (type === "error") {
         swapStatus.classList.add("bg-red-900/50", "text-red-400");
     } else if (type === "success") {
@@ -673,17 +667,17 @@ function showNotification(message, opts = {}) {
         title = "",
         duration = type === "error" ? null : 6000,
     } = opts;
-    
+
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
     toast.setAttribute("role", "status");
     toast.setAttribute("aria-live", "polite");
-    
+
     const icon = document.createElement("div");
     icon.className = "icon";
     icon.innerHTML = type === "success" ? "✓" : type === "error" ? "⚠" : "ℹ";
     toast.appendChild(icon);
-    
+
     const body = document.createElement("div");
     body.className = "body";
     if (title) {
@@ -696,18 +690,18 @@ function showNotification(message, opts = {}) {
     m.className = "msg";
     m.textContent = message;
     body.appendChild(m);
-    
+
     toast.appendChild(body);
-    
+
     const closeBtn = document.createElement("button");
     closeBtn.className = "close-x";
     closeBtn.setAttribute("aria-label", "بستن اعلان");
     closeBtn.innerHTML = "✕";
     closeBtn.addEventListener("click", () => dismissToast(toast));
     toast.appendChild(closeBtn);
-    
+
     toastContainer.appendChild(toast);
-    
+
     if (duration && typeof duration === "number") {
         toast._timeout = setTimeout(() => dismissToast(toast), duration);
     }

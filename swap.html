@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تبدیل توکن - Uniswap</title>
+  <title>تبدیل توکن - Relay</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
   <link rel="stylesheet" href="public/css/globals.css" />
@@ -31,7 +31,8 @@
 
     <a href="/swap.html" class="os-item" id="navSwap">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-        <path d="M8 3L4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M8 3L4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round" />
       </svg>
       <span class="os-label font-medium">تبدیل</span>
     </a>
@@ -66,7 +67,7 @@
           <div>
             <div class="text-lg font-semibold">مارکت NFT</div>
             <div class="text-xs text-slate-400">
-              تبدیل توکن با Uniswap
+              تبدیل توکن با Relay
             </div>
           </div>
         </div>
@@ -117,11 +118,13 @@
             <button id="fromTokenSelect"
               class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold flex items-center gap-2 transition">
               <span id="fromTokenSymbol">ETH</span>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
                 <path d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <button id="maxFromBtn" class="px-3 py-1 text-xs bg-emerald-500 hover:bg-emerald-400 rounded-lg font-semibold">
+            <button id="maxFromBtn"
+              class="px-3 py-1 text-xs bg-emerald-500 hover:bg-emerald-400 rounded-lg font-semibold">
               حداکثر
             </button>
           </div>
@@ -156,7 +159,8 @@
             <button id="toTokenSelect"
               class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-semibold flex items-center gap-2 transition">
               <span id="toTokenSymbol">انتخاب توکن</span>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
                 <path d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
@@ -192,11 +196,13 @@
 
     <!-- Token Select Modal -->
     <div id="tokenModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div class="bg-slate-900 rounded-2xl border border-slate-800 max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <div
+        class="bg-slate-900 rounded-2xl border border-slate-800 max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col">
         <div class="p-4 border-b border-slate-800 flex items-center justify-between">
           <h3 class="text-lg font-semibold">انتخاب توکن</h3>
           <button id="closeTokenModal" class="p-2 hover:bg-slate-800 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor">
               <path d="M18 6L6 18M6 6l12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
@@ -219,4 +225,3 @@
 </body>
 
 </html>
-
