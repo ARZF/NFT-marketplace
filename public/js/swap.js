@@ -515,7 +515,7 @@ async function getQuote(amountIn) {
                 tradeType: "EXACT_INPUT",
                 amount: amountInWei.toString(),
                 referrer: "relay.link/swap",
-                useExternalLiquidity: false
+                useExternalLiquidity: true  // Use external DEX aggregators for same-chain swaps
             })
         });
 
@@ -531,6 +531,10 @@ async function getQuote(amountIn) {
                 errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
             } else if (errorData.message && errorData.message.includes('currency')) {
                 errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
+            } else if (errorData.message && errorData.message.includes('origin chain configuration')) {
+                errorMessage = `پیکربندی شبکه برای معامله یافت نشد. لطفاً دوباره تلاش کنید.`;
+            } else if (errorData.message && errorData.message.includes('protocol flow')) {
+                errorMessage = `خطا در مسیریابی. لطفاً دوباره تلاش کنید.`;
             }
 
             throw new Error(errorMessage);
@@ -653,7 +657,7 @@ async function executeSwap() {
                 tradeType: "EXACT_INPUT",
                 amount: amountInWei.toString(),
                 referrer: "relay.link/swap",
-                useExternalLiquidity: false
+                useExternalLiquidity: true  // Use external DEX aggregators for same-chain swaps
             })
         });
 
@@ -669,6 +673,10 @@ async function executeSwap() {
                 errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
             } else if (errorData.message && errorData.message.includes('currency')) {
                 errorMessage = `توکن انتخاب شده پشتیبانی نمی‌شود. لطفاً توکن دیگری انتخاب کنید.`;
+            } else if (errorData.message && errorData.message.includes('origin chain configuration')) {
+                errorMessage = `پیکربندی شبکه برای معامله یافت نشد. لطفاً دوباره تلاش کنید.`;
+            } else if (errorData.message && errorData.message.includes('protocol flow')) {
+                errorMessage = `خطا در مسیریابی. لطفاً دوباره تلاش کنید.`;
             } else if (errorData.message && errorData.message.includes('validating')) {
                 errorMessage = `خطا در اعتبارسنجی درخواست. لطفاً دوباره تلاش کنید.`;
             }
