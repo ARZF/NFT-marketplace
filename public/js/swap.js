@@ -2,7 +2,7 @@
 // Uses Relay API for meta-aggregation swaps
 
 // Relay API Configuration
-const RELAY_API_URL = 'https://api.testnets.relay.link/quote/v2';
+const RELAY_API_URL = 'https://api.testnets.relay.link/quote/';
 
 // Chain-specific WETH addresses (for wrapping/unwrapping if needed)
 const WETH_ADDRESSES = {
@@ -656,8 +656,7 @@ async function executeSwap() {
                 recipient: ethers.getAddress(userAddress), // Checksum recipient address
                 tradeType: "EXACT_INPUT",
                 amount: amountInWei.toString(),
-                referrer: "relay.link/swap",
-                useExternalLiquidity: true  // Use external DEX aggregators for same-chain swaps
+                referrer: "relay.link/",
             })
         });
 
