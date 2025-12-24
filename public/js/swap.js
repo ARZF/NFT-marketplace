@@ -2,7 +2,7 @@
 // Uses Relay API for meta-aggregation swaps
 
 // Relay API Configuration
-const RELAY_API_URL = 'https://api.testnets.relay.link/quote/';
+const RELAY_API_URL = 'https://api.testnets.relay.link/quote';
 
 // Chain-specific WETH addresses (for wrapping/unwrapping if needed)
 const WETH_ADDRESSES = {
