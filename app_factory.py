@@ -89,22 +89,41 @@ def create_app() -> FastAPI:
         """
         try:
             # Parse request body
-            body = await request.json()
+            try:
+                body = await request.json()
+            except Exception as json_error:
+                raise HTTPException(status_code=400, detail=f"Invalid JSON in request body: {str(json_error)}")
             
             # Extract parameters from request body
             token_id = body.get("token_id")
-            nft_address = request.get("nft_address")
-            chain_id = request.get("chain_id")
-            price_wei = request.get("price_wei")
-            seller_address = request.get("seller_address")
-            name = request.get("name")
-            description = request.get("description")
-            image_url = request.get("image_url")
-            token_uri = request.get("token_uri")
-            collection = request.get("collection")
+            nft_address = body.get("nft_address")
+            chain_id = body.get("chain_id")
+            price_wei = body.get("price_wei")
+            seller_address = body.get("seller_address")
+            name = body.get("name")
+            description = body.get("description")
+            image_url = body.get("image_url")
+            token_uri = body.get("token_uri")
+            collection = body.get("collection")
             
-            if not all([token_id, nft_address, chain_id, price_wei, seller_address]):
-                raise HTTPException(status_code=400, detail="Missing required fields: token_id, nft_address, chain_id, price_wei, seller_address")
+            # Validate required fields
+            missing_fields = []
+            if token_id is None:
+                missing_fields.append("token_id")
+            if not nft_address:
+                missing_fields.append("nft_address")
+            if chain_id is None:
+                missing_fields.append("chain_id")
+            if not price_wei:
+                missing_fields.append("price_wei")
+            if not seller_address:
+                missing_fields.append("seller_address")
+            
+            if missing_fields:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Missing required fields: {', '.join(missing_fields)}"
+                )
             
             # Convert price_wei to price_eth
             price_wei_int = int(price_wei)
