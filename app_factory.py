@@ -2,18 +2,20 @@
 Shared FastAPI application factory used for local dev (uvicorn) and Vercel.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from api.nft import router as nft_router
 import os
 from pathlib import Path
+import json
 
 
-from marketplace_indexer import get_active_listings, run_indexer
-from db import fetch_all_listing_rows
+from marketplace_indexer import get_active_listings, run_indexer, wei_to_eth_str
+from db import fetch_all_listing_rows, upsert_listing_record
 from marketplace_indexer import checksum
+from fastapi import HTTPException
 
 
 def create_app() -> FastAPI:
@@ -78,6 +80,66 @@ def create_app() -> FastAPI:
     def reindex() -> list[dict]:
         run_indexer()
         return [listing.to_dict() for listing in get_active_listings()]
+
+    @app.post("/api/listings/add")
+    async def add_listing(request: Request) -> dict:
+        """
+        Directly add a listing to the database without resetting the table.
+        Used after minting to immediately show the new listing.
+        """
+        try:
+            # Parse request body
+            body = await request.json()
+            
+            # Extract parameters from request body
+            token_id = body.get("token_id")
+            nft_address = request.get("nft_address")
+            chain_id = request.get("chain_id")
+            price_wei = request.get("price_wei")
+            seller_address = request.get("seller_address")
+            name = request.get("name")
+            description = request.get("description")
+            image_url = request.get("image_url")
+            token_uri = request.get("token_uri")
+            collection = request.get("collection")
+            
+            if not all([token_id, nft_address, chain_id, price_wei, seller_address]):
+                raise HTTPException(status_code=400, detail="Missing required fields: token_id, nft_address, chain_id, price_wei, seller_address")
+            
+            # Convert price_wei to price_eth
+            price_wei_int = int(price_wei)
+            price_eth = wei_to_eth_str(price_wei_int)
+            
+            # Normalize addresses
+            nft_address_normalized = checksum(nft_address)
+            seller_address_normalized = checksum(seller_address) if seller_address else ""
+            
+            # Add listing to database
+            upsert_listing_record(
+                token_id=int(token_id),
+                nft_address=nft_address_normalized,
+                chain_id=int(chain_id),
+                price_eth=price_eth,
+                price_wei=str(price_wei_int),
+                seller_address=seller_address_normalized,
+                is_sold=0,
+                name=name,
+                description=description,
+                image_url=image_url,
+                token_uri=token_uri,
+                collection=collection,
+            )
+            
+            return {
+                "ok": True,
+                "message": "Listing added successfully",
+                "token_id": token_id,
+                "nft_address": nft_address_normalized,
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
 
     @app.get("/api/config")
     def config() -> dict:

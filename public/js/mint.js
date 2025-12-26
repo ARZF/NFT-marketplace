@@ -529,8 +529,37 @@ async function handleMintForm(event) {
         );
         await txList.wait();
 
-        // Trigger backend reindex so homepage listings update
-        await fetch(API_REINDEX_URL, { method: "POST" }).catch(() => { });
+        // Get current chain ID
+        const network = await provider.getNetwork();
+        const currentChainId = Number(network.chainId);
+
+        // Directly add listing to database so it appears immediately
+        const addListingResponse = await fetch(`${API_BASE}/api/listings/add`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                token_id: parseInt(tokenIdForApprove),
+                nft_address: NFT_CONTRACT_ADDRESS,
+                chain_id: currentChainId,
+                price_wei: priceWei.toString(),
+                seller_address: userAddress,
+                name: result.metadata?.name || mintTitleInput?.value || null,
+                description: result.metadata?.description || mintDescriptionInput?.value || null,
+                image_url: result.metadata?.image ? result.metadata.image.replace("ipfs://", "https://ipfs.io/ipfs/") : (result.image_cid ? `https://ipfs.io/ipfs/${result.image_cid}` : null),
+                token_uri: tokenURI,
+                collection: result.metadata?.collection || (mintCollectionInput?.value || null),
+            }),
+        });
+
+        if (!addListingResponse.ok) {
+            console.warn("Failed to add listing directly, will try reindex:", await addListingResponse.text());
+            // Fallback to reindex if direct add fails
+            await fetch(API_REINDEX_URL, { method: "POST" }).catch(() => { });
+        } else {
+            console.log("Listing added directly to database");
+        }
 
         const metadataPreview = JSON.stringify(result.metadata, null, 2);
         showNotification(
