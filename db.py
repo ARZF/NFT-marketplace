@@ -153,3 +153,19 @@ def fetch_active_listing_rows() -> list[sqlite3.Row]:
     )
     return cursor.fetchall()
 
+
+def fetch_all_listing_rows() -> list[sqlite3.Row]:
+    """
+    Fetch all listings including sold ones, ordered by id DESC (newest first).
+    Used for activity tracking.
+    """
+    init_db()
+    conn = get_connection()
+    cursor = conn.execute(
+        """
+        SELECT id, token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri, collection
+        FROM listings
+        ORDER BY id DESC;
+        """
+    )
+    return cursor.fetchall()

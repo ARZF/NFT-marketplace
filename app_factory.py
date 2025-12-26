@@ -12,6 +12,8 @@ from pathlib import Path
 
 
 from marketplace_indexer import get_active_listings, run_indexer
+from db import fetch_all_listing_rows
+from marketplace_indexer import checksum
 
 
 def create_app() -> FastAPI:
@@ -85,6 +87,94 @@ def create_app() -> FastAPI:
             "assetStorageProvider": os.getenv("ASSET_STORAGE_PROVIDER", "nftstorage").strip().lower(),
         }
 
+    @app.get("/api/activity")
+    def get_activity() -> list[dict]:
+        """
+        Return activity feed with mint, list, and sold events.
+        Each listing represents a 'list' event. If sold, it also represents a 'sold' event.
+        We infer 'mint' events from the first listing of each unique token.
+        """
+        rows = fetch_all_listing_rows()
+        activities = []
+        minted_tokens = set()  # Track tokens that have already been minted
+        
+        for row in rows:
+            # Helper function to safely get optional columns
+            def safe_get(key):
+                try:
+                    return row[key]
+                except (KeyError, IndexError):
+                    return None
+            
+            token_id = int(row["token_id"])
+            nft_address = checksum(row["nft_address"])
+            chain_id = int(row["chain_id"])
+            is_sold = bool(row["is_sold"])
+            token_key = (token_id, nft_address, chain_id)
+            
+            # Create mint activity only for the first occurrence of each token
+            if token_key not in minted_tokens:
+                mint_activity = {
+                    "id": f"mint-{token_id}-{nft_address}-{chain_id}",
+                    "event_type": "mint",
+                    "token_id": token_id,
+                    "nft_address": nft_address,
+                    "chain_id": chain_id,
+                    "owner_address": row["seller_address"],  # First owner is the minter
+                    "name": safe_get("name") or f"Token #{token_id}",
+                    "description": safe_get("description"),
+                    "image_url": safe_get("image_url"),
+                    "token_uri": safe_get("token_uri"),
+                    "collection": safe_get("collection"),
+                    "order": row["id"] - 0.5,  # Mint events come before list events
+                }
+                activities.append(mint_activity)
+                minted_tokens.add(token_key)
+            
+            # Create list activity
+            list_activity = {
+                "id": f"list-{row['id']}",
+                "event_type": "list",
+                "token_id": token_id,
+                "nft_address": nft_address,
+                "chain_id": chain_id,
+                "price_eth": row["price_eth"],
+                "price_wei": row["price_wei"],
+                "seller_address": row["seller_address"],
+                "name": safe_get("name") or f"Token #{token_id}",
+                "description": safe_get("description"),
+                "image_url": safe_get("image_url"),
+                "token_uri": safe_get("token_uri"),
+                "collection": safe_get("collection"),
+                "order": row["id"],  # For sorting
+            }
+            activities.append(list_activity)
+            
+            # If sold, also create a sold activity
+            if is_sold:
+                sold_activity = {
+                    "id": f"sold-{row['id']}",
+                    "event_type": "sold",
+                    "token_id": token_id,
+                    "nft_address": nft_address,
+                    "chain_id": chain_id,
+                    "price_eth": row["price_eth"],
+                    "price_wei": row["price_wei"],
+                    "seller_address": row["seller_address"],
+                    "name": safe_get("name") or f"Token #{token_id}",
+                    "description": safe_get("description"),
+                    "image_url": safe_get("image_url"),
+                    "token_uri": safe_get("token_uri"),
+                    "collection": safe_get("collection"),
+                    "order": row["id"] + 0.5,  # Sold events come after list events
+                }
+                activities.append(sold_activity)
+        
+        # Sort by order (mint -> list -> sold for same token)
+        activities.sort(key=lambda x: x["order"], reverse=True)
+        
+        return activities
+
     @app.get("/mint.html", include_in_schema=False)
     async def mint_form_page() -> FileResponse:
         """
@@ -119,6 +209,13 @@ def create_app() -> FastAPI:
         Return the standalone swap page.
         """
         return FileResponse(str(Path(__file__).parent / "swap.html"))
+
+    @app.get("/activity.html", include_in_schema=False)
+    async def activity_page() -> FileResponse:
+        """
+        Return the activity page.
+        """
+        return FileResponse(str(Path(__file__).parent / "activity.html"))
 
 
     app.include_router(nft_router)
