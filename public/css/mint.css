@@ -9,10 +9,16 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
-          /* OpenSea-like hover sidebar */
+
+        /* OpenSea-like hover sidebar */
         .os-sidebar {
             position: fixed;
             left: 16px;
@@ -33,7 +39,7 @@
         }
 
         .os-sidebar:hover {
-            width: 220px;
+            width: 160px;
         }
 
         .os-item {

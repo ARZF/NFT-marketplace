@@ -1,4 +1,3 @@
-
 /* Sidebar (RTL: right) */
 .os-sidebar {
   position: fixed;
@@ -18,9 +17,11 @@
   transition: width 0.18s ease;
   backdrop-filter: blur(6px);
 }
+
 .os-sidebar:hover {
-  width: 220px;
+  width: 160px;
 }
+
 .os-item {
   display: flex;
   align-items: center;
@@ -30,9 +31,11 @@
   color: #cbd5e1;
   text-decoration: none;
 }
+
 .os-item svg {
   flex: 0 0 20px;
 }
+
 .os-label {
   white-space: nowrap;
   overflow: hidden;
@@ -40,14 +43,17 @@
   transform: translateX(8px);
   transition: opacity 0.14s, transform 0.14s;
 }
+
 .os-sidebar:hover .os-label {
   opacity: 1;
   transform: translateX(0);
 }
+
 .os-item:hover {
   background: rgba(255, 255, 255, 0.02);
   color: #fff;
 }
+
 @media (max-width: 900px) {
   .os-sidebar {
     display: none;
@@ -61,9 +67,11 @@
   height: 18px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.12);
-  border-top-color: #10b981; /* green top */
+  border-top-color: #10b981;
+  /* green top */
   animation: spin 0.9s linear infinite;
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -82,6 +90,7 @@
   pointer-events: none;
   align-items: flex-start;
 }
+
 .toast {
   pointer-events: auto;
   direction: rtl;
@@ -98,16 +107,19 @@
   color: #e6edf3;
   animation: toastIn 0.12s ease;
 }
+
 @keyframes toastIn {
   from {
     transform: translateY(6px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
   }
 }
+
 .toast .icon {
   flex: 0 0 36px;
   height: 36px;
@@ -117,31 +129,38 @@
   place-items: center;
   font-size: 16px;
 }
+
 .toast .body {
   flex: 1 1 auto;
 }
+
 .toast .title {
   font-weight: 700;
   margin-bottom: 2px;
 }
+
 .toast .msg {
   color: #cbd5e1;
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 0.95rem;
 }
+
 .toast.info .icon {
   background: rgba(124, 77, 255, 0.12);
   color: #7c4dff;
 }
+
 .toast.success .icon {
   background: rgba(16, 185, 129, 0.08);
   color: #10b981;
 }
+
 .toast.error .icon {
   background: rgba(239, 68, 68, 0.08);
   color: #ef4444;
 }
+
 .toast .close-x {
   margin-left: 8px;
   background: transparent;
@@ -158,6 +177,7 @@
     right: 0.5rem;
     align-items: center;
   }
+
   .toast {
     width: calc(100% - 1rem);
     max-width: unset;
@@ -169,6 +189,7 @@
 input[type="file"]::-webkit-file-upload-button {
   visibility: hidden;
 }
+
 input[type="file"]::before {
   content: "انتخاب فایل";
   display: inline-block;
@@ -186,6 +207,7 @@ textarea,
 input {
   transition: box-shadow 0.12s, transform 0.12s;
 }
+
 input:focus,
 textarea:focus {
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08);
@@ -210,51 +232,68 @@ textarea:focus {
 /* Mobile menu (RTL: slide from right) */
 .mobile-menu {
   will-change: transform;
-  transition: transform .22s cubic-bezier(.2,.9,.2,1);
+  transition: transform .22s cubic-bezier(.2, .9, .2, 1);
   /* already set right:0, width, z-index in HTML classes */
 }
+
 .mobile-menu.open {
   transform: translateX(0) !important;
 }
+
 .mobile-menu.closed {
   transform: translateX(100%) !important;
 }
 
 /* Mobile backdrop */
-.mobile-backdrop { z-index: 50; }
-.mobile-backdrop.show { display: block; }
+.mobile-backdrop {
+  z-index: 50;
+}
+
+.mobile-backdrop.show {
+  display: block;
+}
 
 /* mobile item style (re-using os-item look but simpler) */
 .os-item-mobile {
   color: #cbd5e1;
-  display:block;
-  text-decoration:none;
-  border-radius:8px;
+  display: block;
+  text-decoration: none;
+  border-radius: 8px;
 }
+
 .os-item-mobile:hover {
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.02);
   color: #fff;
 }
 
 /* ensure hamburger button visible only on small screens via Tailwind 'md:hidden' */
 /* but add small focus style */
-#mobileToggle:focus { outline: 3px solid rgba(124,77,255,0.14); }
+#mobileToggle:focus {
+  outline: 3px solid rgba(124, 77, 255, 0.14);
+}
 
 /* adjust mobile menu width for smaller screens */
 @media (max-width:420px) {
-  #mobileMenu { width: 92vw; max-width: 92vw; }
+  #mobileMenu {
+    width: 92vw;
+    max-width: 92vw;
+  }
 }
 
 /* disabled link style */
 .os-item.disabled,
 .os-item.disabled * {
-  pointer-events: none;     /* غیرقابل کلیک برای ماوس */
-  user-select: none;        /* جلوگیری از انتخاب متن */
+  pointer-events: none;
+  /* غیرقابل کلیک برای ماوس */
+  user-select: none;
+  /* جلوگیری از انتخاب متن */
 }
 
 .os-item.disabled {
-  opacity: 0.5;             /* کم‌رنگ شدن */
-  cursor: not-allowed;      /* نشانگر غیرقابل کلیک */
+  opacity: 0.5;
+  /* کم‌رنگ شدن */
+  cursor: not-allowed;
+  /* نشانگر غیرقابل کلیک */
 }
 
 /* اگر از نسخه موبایل لینک‌های ساده (os-item-mobile) داری */
