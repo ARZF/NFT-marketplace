@@ -169,3 +169,51 @@ def fetch_all_listing_rows() -> list[sqlite3.Row]:
         """
     )
     return cursor.fetchall()
+
+
+def fetch_collections() -> list[dict]:
+    """
+    Fetch all unique collections with their count of active NFTs.
+    Returns a list of dictionaries with collection name and count.
+    """
+    init_db()
+    conn = get_connection()
+    cursor = conn.execute(
+        """
+        SELECT 
+            collection,
+            COUNT(*) as nft_count,
+            MIN(image_url) as preview_image
+        FROM listings
+        WHERE is_sold = 0 AND collection IS NOT NULL AND collection != ''
+        GROUP BY collection
+        ORDER BY nft_count DESC, collection ASC;
+        """
+    )
+    rows = cursor.fetchall()
+    return [
+        {
+            "name": row["collection"],
+            "nft_count": row["nft_count"],
+            "preview_image": row["preview_image"],
+        }
+        for row in rows
+    ]
+
+
+def fetch_listings_by_collection(collection: str) -> list[sqlite3.Row]:
+    """
+    Fetch active listings for a specific collection.
+    """
+    init_db()
+    conn = get_connection()
+    cursor = conn.execute(
+        """
+        SELECT token_id, nft_address, chain_id, price_eth, price_wei, seller_address, is_sold, name, description, image_url, token_uri, collection
+        FROM listings
+        WHERE is_sold = 0 AND collection = ?
+        ORDER BY id DESC;
+        """,
+        (collection,),
+    )
+    return cursor.fetchall()

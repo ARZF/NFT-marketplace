@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مجموعه‌ها - مارکت NFT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.1/dist/ethers.umd.min.js"></script>
+    <link rel="stylesheet" href="public/css/globals.css" />
+    <link rel="stylesheet" href="public/css/index.css" />
+    <link rel="stylesheet" href="public/css/collections.css" />
+</head>
+
+<body class="bg-slate-950 text-white min-h-screen">
+    <!-- Sidebar -->
+    <nav class="os-sidebar" aria-label="ناوبری اصلی">
+        <a href="/" class="os-item" id="navHome">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M3 11.5L12 4l9 7.5" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M5 21h14a1 1 0 0 0 1-1v-9.5" stroke-width="1.4" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">خانه</span>
+        </a>
+
+        <a href="/mint.html" class="os-item" id="navMint">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">ضرب</span>
+        </a>
+
+        <a href="/swap.html" class="os-item" id="navSwap">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M8 3L4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">تبدیل</span>
+        </a>
+
+        <a href="/explore.html" aria-disabled="true" class="os-item disabled" id="navExplore" tabindex="-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M21 10v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">کاوش</span>
+        </a>
+
+        <a href="/collections.html" class="os-item active" id="navCollections">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <rect x="3" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
+                <rect x="14" y="3" width="7" height="7" stroke-width="1.5" rx="1" />
+                <rect x="14" y="14" width="7" height="7" stroke-width="1.5" rx="1" />
+            </svg>
+            <span class="os-label font-medium">مجموعه‌ها</span>
+        </a>
+
+        <a href="/activity.html" class="os-item" id="navActivity">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M3 12h3l3 8 4-16 3 8h4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">فعالیت‌ها</span>
+        </a>
+
+        <a href="/about-us.html" class="os-item" id="navAbout">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <circle cx="12" cy="8" r="2.2" stroke-width="1.2" />
+                <path d="M12 11.5c-3 0-5.5 1.7-5.5 3.8V18h11v-2.7c0-2.1-2.5-3.8-5.5-3.8z" stroke-width="1.2" />
+            </svg>
+            <span class="os-label font-medium">درباره ما</span>
+        </a>
+
+        <a href="/contact-us.html" class="os-item" id="navContact">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M21 8V7a2 2 0 0 0-2-2h-3" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+                <rect x="3" y="5" width="14" height="14" rx="2" stroke-width="1.2" />
+                <path d="M21 15v2" stroke-width="1.2" stroke-linecap="round" />
+            </svg>
+            <span class="os-label font-medium">تماس با ما</span>
+        </a>
+
+        <a href="#" class="os-item mt-auto" id="navSettings">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82..." stroke-width="0.8" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <span class="os-label font-medium">تنظیمات</span>
+        </a>
+    </nav>
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div
+                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-violet-600 flex items-center justify-center font-bold text-slate-900">
+                    N
+                </div>
+                <div>
+                    <div class="text-lg font-semibold">مارکت NFT</div>
+                    <div class="text-xs text-slate-400">
+                        کشف و معامله مجموعه‌های دیجیتال
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <a href="/mint.html"
+                    class="hidden sm:block px-4 py-2 rounded-lg text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-400">ایجاد</a>
+
+                <div class="relative hidden sm:block">
+                    <button id="walletButton"
+                        class="ml-2 px-4 py-2 rounded-md bg-slate-100 text-slate-900 font-semibold hover:bg-white transition">
+                        اتصال کیف‌پول
+                    </button>
+                    <div id="walletMenu"
+                        class="hidden absolute left-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg p-2 z-50">
+                        <button id="viewOwnedBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+                            NFT های من
+                        </button>
+                        <button id="showAllBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+                            نمایش همه
+                        </button>
+                        <div class="border-t border-slate-700 my-1"></div>
+                        <button id="disconnectBtn"
+                            class="w-full text-left px-3 py-2 rounded text-red-400 hover:bg-slate-700">
+                            قطع اتصال
+                        </button>
+                    </div>
+                </div>
+                <select id="chainSelect"
+                    class="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-200 hidden sm:block"></select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-16">
+        <!-- Collections List View -->
+        <section id="collectionsView">
+            <div class="flex items-end justify-between gap-4 flex-wrap mb-8">
+                <div>
+                    <p class="text-sm uppercase text-slate-400 tracking-wide">
+                        مجموعه‌های موجود
+                    </p>
+                    <h2 class="text-3xl font-semibold text-white">همه مجموعه‌ها</h2>
+                </div>
+                <button id="backToCollections"
+                    class="hidden px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700">
+                    بازگشت به مجموعه‌ها
+                </button>
+            </div>
+            <div id="collectionsGrid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"></div>
+            <div id="collectionsEmptyState" class="hidden text-center text-slate-500 mt-16">
+                مجموعه‌ای یافت نشد.
+            </div>
+        </section>
+
+        <!-- Collection NFTs View -->
+        <section id="collectionNFTsView" class="hidden">
+            <div class="flex items-end justify-between gap-4 flex-wrap mb-8">
+                <div>
+                    <p class="text-sm uppercase text-slate-400 tracking-wide">
+                        مجموعه
+                    </p>
+                    <h2 id="collectionTitle" class="text-3xl font-semibold text-white"></h2>
+                    <p id="collectionCount" class="text-slate-400 text-sm mt-2"></p>
+                </div>
+                <button id="backToCollectionsBtn"
+                    class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700">
+                    بازگشت به مجموعه‌ها
+                </button>
+            </div>
+            <div id="collectionNFTsGrid" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"></div>
+            <div id="collectionNFTsEmptyState" class="hidden text-center text-slate-500 mt-16">
+                NFT فعالی در این مجموعه یافت نشد.
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast container -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <template id="collectionCardTemplate">
+        <article
+            class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 cursor-pointer hover:border-emerald-500 transition-colors collection-card">
+            <div class="h-48 rounded-xl bg-cover bg-center bg-slate-800" data-field="preview_image"></div>
+            <div>
+                <h3 class="text-xl font-semibold text-white" data-field="name"></h3>
+                <p class="text-slate-400 text-sm" data-field="count"></p>
+            </div>
+        </article>
+    </template>
+
+    <template id="listingCardTemplate">
+        <article class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4">
+            <div class="h-48 rounded-xl bg-cover bg-center bg-slate-800 cursor-pointer" data-field="image"></div>
+            <div>
+                <h3 class="text-xl font-semibold text-white" data-field="title"></h3>
+                <p class="text-slate-400 text-sm break-words" data-field="address"></p>
+            </div>
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-wide text-slate-400">قیمت</p>
+                    <p class="text-2xl font-bold text-emerald-400" data-field="price"></p>
+                </div>
+                <button
+                    class="buy-btn px-4 py-2 rounded-lg font-semibold text-slate-900 bg-emerald-400 hover:bg-emerald-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button">
+                    خرید
+                </button>
+            </div>
+            <p class="text-xs text-slate-500" data-field="seller"></p>
+        </article>
+    </template>
+
+    <script src="public/js/config.js"></script>
+    <script src="public/js/collections.js" defer></script>
+</body>
+
+</html>

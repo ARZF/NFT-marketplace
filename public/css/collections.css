@@ -1,0 +1,27 @@
+/* Collections page specific styles */
+
+.collection-card {
+    transition: all 0.2s ease;
+}
+
+.collection-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.2);
+}
+
+#collectionsView,
+#collectionNFTsView {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

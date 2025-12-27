@@ -13,8 +13,8 @@ import json
 
 
 from marketplace_indexer import get_active_listings, run_indexer, wei_to_eth_str
-from db import fetch_all_listing_rows, upsert_listing_record
-from marketplace_indexer import checksum
+from db import fetch_all_listing_rows, upsert_listing_record, fetch_collections, fetch_listings_by_collection
+from marketplace_indexer import checksum, Listing
 from fastapi import HTTPException
 
 
@@ -298,6 +298,50 @@ def create_app() -> FastAPI:
         """
         return FileResponse(str(Path(__file__).parent / "activity.html"))
 
+    @app.get("/collections.html", include_in_schema=False)
+    async def collections_page() -> FileResponse:
+        """
+        Return the collections page.
+        """
+        return FileResponse(str(Path(__file__).parent / "collections.html"))
+
+    @app.get("/api/collections")
+    def get_collections() -> list[dict]:
+        """
+        Return all unique collections with their NFT counts.
+        """
+        return fetch_collections()
+
+    @app.get("/api/collections/{collection_name}")
+    def get_collection_nfts(collection_name: str) -> list[dict]:
+        """
+        Return all active NFTs in a specific collection.
+        """
+        rows = fetch_listings_by_collection(collection_name)
+        listings = []
+        for row in rows:
+            def safe_get(key):
+                try:
+                    return row[key]
+                except (KeyError, IndexError):
+                    return None
+            
+            listing = Listing(
+                token_id=int(row["token_id"]),
+                nft_address=checksum(row["nft_address"]),
+                chain_id=int(row["chain_id"]),
+                price_eth=row["price_eth"],
+                price_wei=row["price_wei"],
+                seller_address=row["seller_address"],
+                is_sold=bool(row["is_sold"]),
+                name=safe_get("name"),
+                description=safe_get("description"),
+                image_url=safe_get("image_url"),
+                token_uri=safe_get("token_uri"),
+                collection=safe_get("collection"),
+            )
+            listings.append(listing)
+        return [listing.to_dict() for listing in listings]
 
     app.include_router(nft_router)
     
