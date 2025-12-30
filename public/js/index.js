@@ -644,9 +644,8 @@ function renderListings(listings) {
     card.style.cursor = "pointer";
     card.classList.add("hover:border-emerald-500", "transition", "hover:shadow-lg", "hover:shadow-emerald-500/20");
     card.addEventListener("click", (e) => {
-      // Don't navigate if clicking the buy button
       if (e.target.closest(".buy-btn")) return;
-      const detailUrl = `/nft-detail.html?token_id=${listing.token_id}&nft_address=${encodeURIComponent(listing.nft_address)}`;
+      const detailUrl = `/nft-detail.html?token_id=${listing.token_id}&nft_address=${encodeURIComponent(listing.nft_address)}&chain_id=${listing.chain_id}`;
       window.location.href = detailUrl;
     });
     const buyButton = template.querySelector(".buy-btn");

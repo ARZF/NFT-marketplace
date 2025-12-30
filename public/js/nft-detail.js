@@ -160,6 +160,12 @@ let signer = null;
 let userAddress = null;
 let currentListing = null;
 
+// Get URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+const tokenId = urlParams.get("token_id");
+const nftAddressParam = urlParams.get("nft_address");
+const chainIdParam = urlParams.get("chain_id");
+
 if (chainSelect) {
     chainSelect.innerHTML = "";
     Object.keys(CHAINS).forEach((id) => {
@@ -169,6 +175,7 @@ if (chainSelect) {
         chainSelect.appendChild(opt);
     });
     const persisted = localStorage.getItem("selectedChainId");
+    console.log(chainIdParam)
     const initial = chainIdParam ? Number(chainIdParam) : (persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID);
     chainSelect.value = String(initial);
     updateChainConfig(initial);
@@ -178,12 +185,6 @@ if (chainSelect) {
         updateChainConfig(id);
     });
 }
-
-// Get URL parameters
-const urlParams = new URLSearchParams(window.location.search);
-const tokenId = urlParams.get("token_id");
-const nftAddressParam = urlParams.get("nft_address");
-const chainIdParam = urlParams.get("chain_id");
 
 if (chainIdParam) {
     currentChainId = Number(chainIdParam);
