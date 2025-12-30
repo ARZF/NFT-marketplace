@@ -1,6 +1,12 @@
 /******************************
  * Notification / Toast system
  ******************************/
+// Get URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+const tokenId = urlParams.get("token_id");
+const nftAddressParam = urlParams.get("nft_address");
+const chainIdParam = urlParams.get("chain_id");
+
 const toastContainer = document.getElementById("toastContainer");
 
 function showNotification(message, opts = {}) {
@@ -160,11 +166,6 @@ let signer = null;
 let userAddress = null;
 let currentListing = null;
 
-// Get URL parameters
-const urlParams = new URLSearchParams(window.location.search);
-const tokenId = urlParams.get("token_id");
-const nftAddressParam = urlParams.get("nft_address");
-const chainIdParam = urlParams.get("chain_id");
 
 if (chainSelect) {
     chainSelect.innerHTML = "";
