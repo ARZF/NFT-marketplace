@@ -138,6 +138,98 @@
 
     <!-- Main content -->
     <main class="max-w-6xl mx-auto px-6 py-12 space-y-12">
+        <!-- Mint & Auction Form -->
+        <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-8">
+            <div class="flex items-start justify-between flex-wrap gap-4 mb-6">
+                <div>
+                    <p class="text-sm uppercase text-slate-400 tracking-wide">ضرب و حراج</p>
+                    <h2 class="text-3xl font-semibold text-white">ضرب NFT و ایجاد حراج</h2>
+                    <p class="text-slate-400 text-sm mt-2">
+                        اثر خود را آپلود کنید، NFT را ضرب کنید و بلافاصله حراج ایجاد کنید.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Wallet button -->
+            <div class="mb-6 flex justify-end relative">
+                <button id="walletButton"
+                    class="px-4 py-2 rounded-xl bg-slate-100 text-slate-900 font-semibold hover:bg-slate-200">
+                    اتصال کیف‌پول
+                </button>
+                <div id="walletMenu"
+                    class="hidden absolute top-full right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-10">
+                    <button id="viewOwnedBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+                        NFT های من
+                    </button>
+                    <button id="showAllBtn" class="w-full text-left px-3 py-2 rounded hover:bg-slate-700">
+                        نمایش همه
+                    </button>
+                    <div class="border-t border-slate-700 my-1"></div>
+                    <button id="disconnectBtn"
+                        class="w-full text-left px-3 py-2 rounded text-red-400 hover:bg-slate-700">
+                        قطع اتصال
+                    </button>
+                </div>
+            </div>
+
+            <div id="mintResult" class="hidden p-3 rounded mb-4 text-sm text-right"></div>
+
+            <form id="mintForm" class="space-y-4">
+                <div>
+                    <label for="mintTitle" class="block text-sm font-medium text-slate-300 mb-2">عنوان</label>
+                    <input id="mintTitle" type="text" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                </div>
+                <div>
+                    <label for="mintDescription" class="block text-sm font-medium text-slate-300 mb-2">توضیحات</label>
+                    <textarea id="mintDescription" rows="3"
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"></textarea>
+                </div>
+                <div>
+                    <label for="mintCollection" class="block text-sm font-medium text-slate-300 mb-2">مجموعه</label>
+                    <select id="mintCollection"
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400 text-slate-200">
+                        <option value="">انتخاب مجموعه (اختیاری)</option>
+                        <option value="gaming">بازی</option>
+                        <option value="art">هنر</option>
+                        <option value="music">موسیقی</option>
+                        <option value="sports">ورزش</option>
+                        <option value="photography">عکاسی</option>
+                        <option value="collectibles">کلکسیونی</option>
+                        <option value="virtual-worlds">جهان مجازی</option>
+                        <option value="utility">ابزاری</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="mintImage" class="block text-sm font-medium text-slate-300 mb-2">فایل تصویر</label>
+                    <input type="file" id="mintImage" accept="image/*" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="mintPrice" class="block text-sm font-medium text-slate-300 mb-2"
+                            id="priceLabel">قیمت شروع (ETH)</label>
+                        <input type="number" id="mintPrice" step="0.00000001" min="0" required
+                            class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                    </div>
+                    <div>
+                        <label for="auctionDuration" class="block text-sm font-medium text-slate-300 mb-2">مدت زمان حراج
+                            (روز)</label>
+                        <input type="number" id="auctionDuration" step="0.5" min="0.5" value="1" required
+                            class="w-full rounded-xl border border-slate-700 bg-slate-800/70 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            placeholder="1" />
+                    </div>
+                </div>
+                <div class="flex justify-center pt-4">
+                    <button id="mintSubmitButton" type="submit"
+                        class="w-full px-4 py-2 bg-emerald-400 text-slate-900 rounded-xl font-semibold hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        ضرب و حراج کردن NFT
+                        <span id="spinner" class="spinner hidden ml-2"></span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <!-- Create auction -->
         <section class="bg-slate-900/70 border border-slate-800 rounded-3xl p-8">
             <div class="flex items-start justify-between flex-wrap gap-4 mb-6">

@@ -1,275 +1,57 @@
-// Auction page JavaScript
-
+// Shared config (mirrors index.js Persian UX)
 const LOCAL_API_FALLBACK = "http://localhost:8000";
 const params = new URLSearchParams(window.location.search);
 const manualApiOverride = params.get("api");
 const isLocalhost =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
-const defaultApiBase = isLocalhost
-    ? LOCAL_API_FALLBACK
-    : window.location.origin;
+const defaultApiBase = isLocalhost ? LOCAL_API_FALLBACK : window.location.origin;
 const API_BASE = (manualApiOverride ?? defaultApiBase).replace(/\/$/, "");
+const API_NFT_UPLOAD_URL = `${API_BASE}/api/nft/upload`;
+const API_CONFIG_URL = `${API_BASE}/api/config`;
+const API_REINDEX_URL = `${API_BASE}/api/reindex`;
 const API_AUCTION_URL = `${API_BASE}/api/auction`;
 
-let currentChainId = DEFAULT_CHAIN_ID;
-
-// DOM refs
+let MARKETPLACE_ADDRESS = getChainConfig(DEFAULT_CHAIN_ID).marketplace;
+let NFT_CONTRACT_ADDRESS = getChainConfig(DEFAULT_CHAIN_ID).nft;
+let CURRENCY = getChainConfig(DEFAULT_CHAIN_ID).currency;
 const chainSelect = document.getElementById("chainSelect");
-const chainSelectForm = document.getElementById("chainSelectForm");
-const createAuctionForm = document.getElementById("createAuctionForm");
-const createAuctionBtn = document.getElementById("createAuctionBtn");
-const activeAuctionsGrid = document.getElementById("activeAuctionsGrid");
-const activeEmptyState = document.getElementById("activeEmptyState");
-const loadingActive = document.getElementById("loadingActive");
-const refreshAuctionsBtn = document.getElementById("refreshAuctions");
 
-document.addEventListener("DOMContentLoaded", async () => {
-    initializeChainSelectors();
-    setupFormHandler();
-    setupRefreshHandler();
-    await fetchActiveAuctions();
-    // Auto refresh every 45s
-    setInterval(fetchActiveAuctions, 45000);
-});
+function updateChainConfig(chainId) {
+    const config = getChainConfig(chainId);
+    MARKETPLACE_ADDRESS = config.marketplace;
+    NFT_CONTRACT_ADDRESS = config.nft;
+    CURRENCY = config.currency;
+    console.log(`Switched to chain ${chainId}: ${config.name}`);
 
-function setupRefreshHandler() {
-    if (refreshAuctionsBtn) {
-        refreshAuctionsBtn.addEventListener("click", fetchActiveAuctions);
+    // Update price labels
+    const priceLabel = document.getElementById('priceLabel');
+    if (priceLabel) {
+        priceLabel.textContent = `قیمت (${CURRENCY})`;
     }
 }
+const MARKETPLACE_ABI = [
+    "function buyItem(address nftAddress, uint256 tokenId) payable",
+    "function listItem(address nftAddress, uint256 tokenId, uint256 price)",
+];
+const NFT_ABI = [
+    "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+    "function mint(string uri) returns (uint256)",
+    "function approve(address to, uint256 tokenId)",
+    "function setApprovalForAll(address operator, bool approved)",
+    "function isApprovedForAll(address owner, address operator) view returns (bool)",
+];
+const ERC721_TRANSFER_TOPIC = ethers.id("Transfer(address,address,uint256)");
 
-function initializeChainSelectors() {
-    const chains = Object.keys(CHAINS).map((id) => ({
-        id: parseInt(id, 10),
-        name: CHAINS[id].name,
-    }));
-
-    [chainSelect, chainSelectForm].forEach((selectEl) => {
-        if (!selectEl) return;
-        selectEl.innerHTML = chains
-            .map((chain) => `<option value="${chain.id}">${chain.name}</option>`)
-            .join("");
-        selectEl.value = DEFAULT_CHAIN_ID;
-        selectEl.addEventListener("change", (e) => {
-            const chainId = parseInt(e.target.value, 10);
-            currentChainId = chainId;
-        });
-    });
-
-    currentChainId = DEFAULT_CHAIN_ID;
-}
-
-function setupFormHandler() {
-    if (!createAuctionForm) return;
-
-    createAuctionForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const tokenId = parseInt(document.getElementById("tokenIdInput")?.value || "0", 10);
-        const nftAddress = (document.getElementById("nftAddressInput")?.value || "").trim();
-        const chainId = parseInt(chainSelectForm?.value || DEFAULT_CHAIN_ID, 10);
-        const startPriceEth = document.getElementById("startPriceInput")?.value;
-        const startTimeInput = document.getElementById("startTimeInput")?.value;
-        const endTimeInput = document.getElementById("endTimeInput")?.value;
-
-        if (!nftAddress || !ethers.isAddress(nftAddress)) {
-            showNotification("آدرس قرارداد معتبر نیست.", { type: "error", title: "خطا" });
-            return;
-        }
-
-        if (!endTimeInput) {
-            showNotification("زمان پایان را وارد کنید.", { type: "error", title: "خطا" });
-            return;
-        }
-
-        const startTimestamp = startTimeInput
-            ? Math.floor(new Date(startTimeInput).getTime() / 1000)
-            : Math.floor(Date.now() / 1000);
-        const endTimestamp = Math.floor(new Date(endTimeInput).getTime() / 1000);
-
-        if (endTimestamp <= startTimestamp) {
-            showNotification("زمان پایان باید بعد از زمان شروع باشد.", { type: "error", title: "خطا" });
-            return;
-        }
-
-        let startPriceWei;
-        try {
-            startPriceWei = ethers.parseEther(String(startPriceEth)).toString();
-        } catch {
-            showNotification("مقدار قیمت شروع معتبر نیست.", { type: "error", title: "خطا" });
-            return;
-        }
-
-        createAuctionBtn.disabled = true;
-        createAuctionBtn.textContent = "در حال ایجاد...";
-
-        try {
-            const res = await fetch(API_AUCTION_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    token_id: tokenId,
-                    nft_address: nftAddress,
-                    chain_id: chainId,
-                    start_price_wei: startPriceWei,
-                    start_time: startTimestamp,
-                    end_time: endTimestamp,
-                }),
-            });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || `HTTP ${res.status}`);
-            }
-
-            showNotification("حراج ایجاد شد.", { type: "success", title: "موفق" });
-            createAuctionForm.reset();
-            if (chainSelectForm) chainSelectForm.value = String(chainId);
-            await fetchActiveAuctions();
-        } catch (error) {
-            console.error("Create auction failed", error);
-            showNotification(error.message || "خطا در ایجاد حراج", { type: "error", title: "خطا" });
-        } finally {
-            createAuctionBtn.disabled = false;
-            createAuctionBtn.textContent = "ایجاد حراج";
-        }
-    });
-}
-
-async function fetchActiveAuctions() {
-    try {
-        loadingActive?.classList.remove("hidden");
-        activeEmptyState?.classList.add("hidden");
-        if (activeAuctionsGrid) activeAuctionsGrid.innerHTML = "";
-
-        const res = await fetch(`${API_AUCTION_URL}/active`);
-        if (!res.ok) {
-            throw new Error(`HTTP ${res.status}`);
-        }
-        const auctions = await res.json();
-        renderAuctions(auctions || []);
-    } catch (error) {
-        console.error("Failed to fetch auctions", error);
-        showNotification("خطا در بارگذاری حراج‌ها: " + error.message, {
-            type: "error",
-            title: "خطا",
-        });
-        activeEmptyState?.classList.remove("hidden");
-    } finally {
-        loadingActive?.classList.add("hidden");
-    }
-}
-
-function renderAuctions(auctions) {
-    if (!activeAuctionsGrid) return;
-
-    if (!auctions.length) {
-        activeEmptyState?.classList.remove("hidden");
-        activeAuctionsGrid.innerHTML = "";
-        return;
-    }
-
-    activeEmptyState?.classList.add("hidden");
-    const template = document.getElementById("auctionCardTemplate");
-    if (!template) return;
-
-    activeAuctionsGrid.innerHTML = "";
-
-    auctions.forEach((auction) => {
-        const card = template.content.cloneNode(true);
-        const article = card.querySelector("article");
-        const now = Math.floor(Date.now() / 1000);
-        const hasEnded = now > auction.end_time || auction.status !== "ACTIVE";
-
-        const currentBid = auction.current_bid_wei || auction.start_price_wei;
-        const startPriceEth = ethers.formatEther(auction.start_price_wei || "0");
-        const currentBidEth = ethers.formatEther(currentBid || "0");
-
-        card.querySelector('[data-field="title"]').textContent = `Token #${auction.token_id}`;
-        card.querySelector('[data-field="address"]').textContent = `${auction.nft_address.slice(0, 6)}...${auction.nft_address.slice(-4)}`;
-        card.querySelector('[data-field="chain"]').textContent = `Chain ID: ${auction.chain_id}`;
-        card.querySelector('[data-field="status"]').textContent = hasEnded ? "پایان یافته" : "فعال";
-        card.querySelector('[data-field="startPrice"]').textContent = `${startPriceEth} ETH`;
-        card.querySelector('[data-field="currentBid"]').textContent = `${currentBidEth} ETH`;
-        card.querySelector('[data-field="seller"]').textContent = `فروشنده: ${auction.seller_address.slice(0, 6)}...${auction.seller_address.slice(-4)}`;
-        card.querySelector('[data-field="endsIn"]').textContent = hasEnded
-            ? "پایان یافته"
-            : `پایان: ${new Date(auction.end_time * 1000).toLocaleString()}`;
-
-        const bidInput = card.querySelector('[data-field="bidInput"]');
-        const bidBtn = card.querySelector(".bid-btn");
-
-        if (hasEnded) {
-            bidInput.disabled = true;
-            bidBtn.disabled = true;
-            bidBtn.textContent = "پایان یافته";
-        } else {
-            bidBtn.addEventListener("click", async () => {
-                const amountEth = bidInput.value;
-                if (!amountEth) {
-                    showNotification("مقدار پیشنهاد را وارد کنید.", { type: "error", title: "خطا" });
-                    return;
-                }
-                await placeBid(auction.id, amountEth, bidBtn);
-            });
-        }
-
-        activeAuctionsGrid.appendChild(card);
-    });
-}
-
-async function placeBid(auctionId, amountEth, button) {
-    let bidWei;
-    try {
-        bidWei = ethers.parseEther(String(amountEth)).toString();
-    } catch {
-        showNotification("مقدار پیشنهاد معتبر نیست.", { type: "error", title: "خطا" });
-        return;
-    }
-
-    button.disabled = true;
-    const prevLabel = button.textContent;
-    button.textContent = "در حال ارسال...";
-
-    try {
-        const res = await fetch(`${API_AUCTION_URL}/bid`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                auction_id: auctionId,
-                bid_amount_wei: bidWei,
-            }),
-        });
-
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.detail || `HTTP ${res.status}`);
-        }
-
-        showNotification("پیشنهاد ثبت شد.", { type: "success", title: "موفق" });
-        await fetchActiveAuctions();
-    } catch (error) {
-        console.error("Place bid failed", error);
-        showNotification(error.message || "خطا در ثبت پیشنهاد", { type: "error", title: "خطا" });
-    } finally {
-        button.disabled = false;
-        button.textContent = prevLabel;
-    }
-}
-
-/******************************
- * Toast helpers
- ******************************/
+// Toast / notification system (copied from index.js)
+const toastContainer = document.getElementById("toastContainer");
 function showNotification(message, opts = {}) {
     const {
         type = "info",
         title = "",
-        duration = type === "error" ? 6000 : 5000,
+        duration = type === "error" ? null : 6000,
+        actions = [],
     } = opts;
-    const toastContainer = document.getElementById("toastContainer");
-    if (!toastContainer) return;
-
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
     toast.setAttribute("role", "status");
@@ -292,6 +74,7 @@ function showNotification(message, opts = {}) {
     m.className = "msg";
     m.textContent = message;
     body.appendChild(m);
+
     toast.appendChild(body);
 
     const closeBtn = document.createElement("button");
@@ -302,12 +85,11 @@ function showNotification(message, opts = {}) {
     toast.appendChild(closeBtn);
 
     toastContainer.appendChild(toast);
-
     if (duration && typeof duration === "number") {
         toast._timeout = setTimeout(() => dismissToast(toast), duration);
     }
+    return { dismiss: () => dismissToast(toast), element: toast };
 }
-
 function dismissToast(toast) {
     if (!toast || !toast.parentElement) return;
     clearTimeout(toast._timeout);
@@ -317,8 +99,522 @@ function dismissToast(toast) {
     setTimeout(() => {
         try {
             toast.remove();
-        } catch (e) {
-            // ignore
-        }
+        } catch (e) { }
     }, 140);
 }
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showNotification("کپی شد به حافظه‌ی کلیپ‌بورد.", {
+            type: "success",
+            duration: 2500,
+        });
+    } catch {
+        showNotification("کپی ناموفق بود. لطفاً دستی کپی کنید.", {
+            type: "error",
+            title: "خطا",
+        });
+    }
+}
+
+// DOM refs
+const walletButton = document.getElementById("walletButton");
+const walletMenu = document.getElementById("walletMenu");
+const viewOwnedBtn = document.getElementById("viewOwnedBtn");
+const disconnectBtn = document.getElementById("disconnectBtn");
+const showAllBtn = document.getElementById("showAllBtn");
+
+const mintForm = document.getElementById("mintForm");
+const mintImageInput = document.getElementById("mintImage");
+const mintPriceInput = document.getElementById("mintPrice");
+const mintSubmitButton = document.getElementById("mintSubmitButton");
+const spinner = document.getElementById("spinner");
+const mintResult = document.getElementById("mintResult");
+const mintTitleInput = document.getElementById("mintTitle");
+const mintDescriptionInput = document.getElementById("mintDescription");
+const auctionDurationInput = document.getElementById("auctionDuration");
+
+// Web3 state
+let provider = null;
+let signer = null;
+let userAddress = null;
+
+// Function to switch network in MetaMask
+async function switchNetwork(chainId) {
+    if (!window.ethereum) {
+        showNotification(
+            "MetaMask یا کیف‌پول EIP-1193 نصب نیست.",
+            { type: "error", title: "کیف‌پول یافت نشد" }
+        );
+        return false;
+    }
+
+    const hexChainId = `0x${chainId.toString(16)}`;
+    const chainConfig = CHAINS[chainId];
+
+    if (!chainConfig) {
+        showNotification(
+            `پیکربندی شبکه برای Chain ID ${chainId} یافت نشد.`,
+            { type: "error", title: "خطا" }
+        );
+        return false;
+    }
+
+    try {
+        // Try to switch to the network
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: hexChainId }],
+        });
+        return true;
+    } catch (switchError) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (switchError.code === 4902 || switchError.code === -32603) {
+            try {
+                // Add the network to MetaMask
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: hexChainId,
+                        chainName: chainConfig.chainName,
+                        nativeCurrency: chainConfig.nativeCurrency,
+                        rpcUrls: chainConfig.rpcUrls,
+                        blockExplorerUrls: chainConfig.blockExplorerUrls,
+                    }],
+                });
+                return true;
+            } catch (addError) {
+                console.error('Error adding network:', addError);
+                showNotification(
+                    `افزودن شبکه به MetaMask ناموفق بود: ${addError.message}`,
+                    { type: "error", title: "خطا" }
+                );
+                return false;
+            }
+        } else if (switchError.code === 4001) {
+            // User rejected the request
+            showNotification(
+                "تغییر شبکه توسط کاربر رد شد.",
+                { type: "info" }
+            );
+            return false;
+        } else {
+            console.error('Error switching network:', switchError);
+            showNotification(
+                `تغییر شبکه ناموفق بود: ${switchError.message}`,
+                { type: "error", title: "خطا" }
+            );
+            return false;
+        }
+    }
+}
+
+if (chainSelect) {
+    chainSelect.innerHTML = "";
+    Object.keys(CHAINS).forEach((id) => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = CHAINS[id].name;
+        chainSelect.appendChild(opt);
+    });
+    const persisted = localStorage.getItem("selectedChainId");
+    const initial = persisted ? parseInt(persisted) : DEFAULT_CHAIN_ID;
+    chainSelect.value = String(initial);
+    updateChainConfig(initial);
+
+    chainSelect.addEventListener("change", async (e) => {
+        const id = parseInt(e.target.value);
+
+        // If wallet is connected, switch network in MetaMask
+        if (signer && userAddress && window.ethereum) {
+            const switched = await switchNetwork(id);
+            if (!switched) {
+                // Revert the select to previous value if switch failed
+                try {
+                    const currentNetwork = await provider.getNetwork();
+                    chainSelect.value = String(Number(currentNetwork.chainId));
+                } catch (err) {
+                    // If we can't get current network, revert to persisted value
+                    const persisted = localStorage.getItem("selectedChainId");
+                    chainSelect.value = persisted || String(DEFAULT_CHAIN_ID);
+                }
+                return;
+            }
+        }
+
+        localStorage.setItem("selectedChainId", String(id));
+        updateChainConfig(id);
+    });
+}
+
+walletButton?.addEventListener("click", handleWalletButtonClick);
+viewOwnedBtn?.addEventListener("click", () => {
+    showNotification("نمایش NFT های شما فقط در صفحه اصلی فعال است.", {
+        type: "info",
+    });
+    walletMenu?.classList.add("hidden");
+});
+disconnectBtn?.addEventListener("click", disconnectWallet);
+showAllBtn?.addEventListener("click", () => walletMenu?.classList.add("hidden"));
+mintForm?.addEventListener("submit", handleMintForm);
+
+async function connectWallet() {
+    if (!window.ethereum) {
+        showNotification(
+            "MetaMask یا کیف‌پول EIP-1193 نصب نیست. لطفاً نصب یا فعال کنید.",
+            { type: "error", title: "کیف‌پول یافت نشد" }
+        );
+        return;
+    }
+    try {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        const network = await provider.getNetwork();
+        const currentChainId = Number(network.chainId);
+
+        // Update chain select to match MetaMask network
+        if (chainSelect) {
+            // Check if the current network is in our supported chains
+            if (CHAINS[currentChainId]) {
+                chainSelect.value = String(currentChainId);
+                localStorage.setItem("selectedChainId", String(currentChainId));
+            }
+        }
+
+        updateChainConfig(currentChainId);
+
+        // Listen for network changes
+        window.ethereum.on('chainChanged', (chainId) => {
+            const newChainId = Number(chainId);
+            updateChainConfig(newChainId);
+            if (chainSelect && CHAINS[newChainId]) {
+                chainSelect.value = String(newChainId);
+                localStorage.setItem("selectedChainId", String(newChainId));
+            }
+        });
+
+        walletButton.textContent = shortenAddress(userAddress);
+        walletButton.classList.remove("bg-slate-100", "text-slate-900");
+        walletButton.classList.add("bg-emerald-400", "text-slate-900");
+        walletMenu?.classList.add("hidden");
+        showNotification("کیف‌پول متصل شد: " + shortenAddress(userAddress), {
+            type: "success",
+            duration: 3500,
+        });
+    } catch (error) {
+        console.error("Wallet connection failed", error);
+        showNotification("اتصال کیف‌پول ناموفق بود: " + (error?.message || ""), {
+            type: "error",
+            title: "خطا",
+        });
+    }
+}
+
+function handleWalletButtonClick() {
+    if (signer && userAddress) {
+        walletMenu?.classList.toggle("hidden");
+    } else {
+        connectWallet();
+    }
+}
+
+function disconnectWallet() {
+    provider = null;
+    signer = null;
+    userAddress = null;
+    walletButton.textContent = "اتصال کیف‌پول";
+    walletButton.classList.remove("bg-emerald-400");
+    walletButton.classList.add("bg-slate-100", "text-slate-900");
+    walletMenu?.classList.add("hidden");
+    showNotification("کیف‌پول قطع شد.", { type: "info" });
+}
+
+async function loadBackendConfig() {
+    try {
+        const resp = await fetch(API_CONFIG_URL);
+        if (!resp.ok) return;
+        const cfg = await resp.json();
+        console.log("Backend config received:", cfg);
+        // We prioritize local CHAINS config, so we don't overwrite here anymore
+        // if (cfg?.marketplaceAddress) MARKETPLACE_ADDRESS = cfg.marketplaceAddress;
+        // if (cfg?.nftContractAddress) NFT_CONTRACT_ADDRESS = cfg.nftContractAddress;
+    } catch (e) {
+        console.warn("Could not load backend config:", e);
+    }
+}
+
+async function validateConfig() {
+    if (!NFT_CONTRACT_ADDRESS || !MARKETPLACE_ADDRESS) {
+        setMintStatus("آدرس قراردادها یافت نشد.", "error");
+        showNotification("آدرس قراردادها یافت نشد.", {
+            type: "error",
+            title: "خطا",
+        });
+        return false;
+    }
+    if (
+        NFT_CONTRACT_ADDRESS.toLowerCase() === MARKETPLACE_ADDRESS.toLowerCase()
+    ) {
+        setMintStatus("آدرس قرارداد NFT نباید برابر آدرس بازارچه باشد.", "error");
+        showNotification("آدرس قرارداد NFT نباید برابر آدرس بازارچه باشد.", {
+            type: "error",
+            title: "خطا",
+        });
+        return false;
+    }
+    if (!provider) {
+        await connectWallet();
+        if (!provider) return false;
+    }
+    try {
+        ethers.getAddress(NFT_CONTRACT_ADDRESS);
+        ethers.getAddress(MARKETPLACE_ADDRESS);
+    } catch (e) {
+        setMintStatus("فرمت آدرس قرارداد نامعتبر است.", "error");
+        showNotification("فرمت آدرس قرارداد نامعتبر است.", {
+            type: "error",
+            title: "خطا",
+        });
+        return false;
+    }
+    try {
+        const nftCode = await provider.getCode(NFT_CONTRACT_ADDRESS);
+        const marketCode = await provider.getCode(MARKETPLACE_ADDRESS);
+        if (!nftCode || nftCode === "0x") {
+            const network = await provider.getNetwork();
+            console.warn(
+                `قراردادی در NFT_CONTRACT_ADDRESS روی ${network.name} یافت نشد.`
+            );
+        }
+        if (!marketCode || marketCode === "0x") {
+            const network = await provider.getNetwork();
+            console.warn(
+                `قراردادی در MARKETPLACE_ADDRESS روی ${network.name} یافت نشد.`
+            );
+        }
+    } catch (e) {
+        console.warn("Could not verify contract existence:", e);
+        showNotification(
+            "هشدار: امکان بررسی وجود قراردادها نیست. مطمئن شوید در شبکه درست هستید.",
+            { type: "info" }
+        );
+    }
+    return true;
+}
+
+async function handleMintForm(event) {
+    event.preventDefault();
+    if (!mintImageInput?.files?.length) {
+        setMintStatus("لطفاً یک فایل تصویری برای آپلود انتخاب کنید.", "error");
+        return;
+    }
+    const formData = new FormData();
+    formData.append("file", mintImageInput.files[0]);
+    formData.append("name", mintTitleInput.value || "");
+    formData.append("description", mintDescriptionInput.value || "");
+    formData.append("price", mintPriceInput.value || "");
+
+    // Get collection from form if available
+    const mintCollectionInput = document.getElementById("mintCollection");
+    if (mintCollectionInput) {
+        formData.append("collection", mintCollectionInput.value || "");
+    }
+
+    try {
+        if (!signer) await connectWallet();
+        if (!signer) {
+            setMintStatus("اتصال کیف‌پول مورد نیاز است.", "error");
+            return;
+        }
+
+        // We use the local CHAINS config now
+        const valid = await validateConfig();
+        if (!valid) return;
+
+        mintSubmitButton.disabled = true;
+        mintSubmitButton.textContent = "در حال آپلود...";
+        spinner?.classList.remove("hidden");
+        setMintStatus("در حال آپلود اثر به NFT.Storage...", "info");
+
+        const response = await fetch(API_NFT_UPLOAD_URL, {
+            method: "POST",
+            body: formData,
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || `آپلود ناموفق (${response.status})`);
+        }
+        const result = await response.json();
+        if (!result?.ok) throw new Error("پاسخ نامتعارف از سرور");
+        if (!result.metadata_cid)
+            throw new Error("CID متادیتا از بک‌اند بازنگشت.");
+        const tokenURI = `ipfs://${result.metadata_cid}`;
+
+        const priceEth = parseFloat(mintPriceInput.value);
+        if (!(priceEth > 0)) throw new Error("یک قیمت معتبر وارد کنید");
+        const priceWei = ethers.parseUnits(priceEth.toString(), 18);
+
+        setMintStatus("در حال ضرب NFT در زنجیره...", "info");
+        const nft = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
+        const txMint = await nft.mint(tokenURI);
+        const receiptMint = await txMint.wait();
+
+        console.log("Mint transaction receipt logs:", receiptMint.logs);
+        console.log("Looking for logs from NFT address:", NFT_CONTRACT_ADDRESS);
+
+        let mintedTokenId = null;
+        for (const log of receiptMint.logs ?? []) {
+            // Check if log is from our NFT contract
+            if (log.address.toLowerCase() !== NFT_CONTRACT_ADDRESS.toLowerCase()) {
+                console.log("Skipping log from different address:", log.address);
+                continue;
+            }
+
+            try {
+                const parsed = nft.interface.parseLog(log);
+                console.log("Parsed log:", parsed);
+                if (parsed && (parsed.name === "Transfer" || parsed.topic === ERC721_TRANSFER_TOPIC)) {
+                    // In ethers v6, parsed.args is a Result object
+                    // Standard Transfer is (from, to, tokenId)
+                    mintedTokenId = parsed.args.tokenId ?? parsed.args[2];
+                    if (mintedTokenId !== null) {
+                        console.log("Found tokenId:", mintedTokenId.toString());
+                        break;
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not parse log:", e);
+            }
+        }
+        if (mintedTokenId === null)
+            throw new Error("توکن ID پس از ضرب پیدا نشد");
+
+        const tokenIdForApprove = mintedTokenId.toString();
+        setMintStatus("در حال اجازه دادن به بازارچه...", "info");
+        try {
+            const isApproved = await nft.isApprovedForAll(
+                userAddress,
+                MARKETPLACE_ADDRESS
+            );
+            if (!isApproved) {
+                const approveAllTx = await nft.setApprovalForAll(
+                    MARKETPLACE_ADDRESS,
+                    true
+                );
+                await approveAllTx.wait();
+            }
+        } catch (approveAllError) {
+            console.warn(
+                "setApprovalForAll failed, trying per-token approval:",
+                approveAllError
+            );
+            const approveTx = await nft.approve(
+                MARKETPLACE_ADDRESS,
+                tokenIdForApprove
+            );
+            await approveTx.wait();
+        }
+
+        setMintStatus("در حال ایجاد حراج...", "info");
+
+        // Get current chain ID
+        const network = await provider.getNetwork();
+        const currentChainId = Number(network.chainId);
+
+        // Auction timing: start now, end after user-specified duration (in days)
+        const now = Math.floor(Date.now() / 1000);
+        // Get duration from input field (in days), default to 1 day if not provided
+        const durationDays = auctionDurationInput ? parseFloat(auctionDurationInput.value) || 1 : 1;
+        if (durationDays <= 0) {
+            throw new Error("مدت زمان حراج باید بیشتر از صفر باشد.");
+        }
+        // Convert days to seconds (days * 24 hours * 60 minutes * 60 seconds)
+        const durationSeconds = durationDays * 24 * 60 * 60;
+        const startTime = now;
+        const endTime = now + durationSeconds;
+
+        // Create auction entry in database
+        const auctionResponse = await fetch(API_AUCTION_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                token_id: parseInt(tokenIdForApprove),
+                nft_address: NFT_CONTRACT_ADDRESS,
+                chain_id: currentChainId,
+                start_price_wei: priceWei.toString(),
+                start_time: startTime,
+                end_time: endTime,
+                seller_address: userAddress,
+            }),
+        });
+
+        if (!auctionResponse.ok) {
+            const errBody = await auctionResponse.json().catch(() => ({}));
+            throw new Error(errBody.detail || `Failed to create auction (HTTP ${auctionResponse.status})`);
+        }
+
+        const metadataPreview = JSON.stringify(result.metadata, null, 2);
+        showNotification(
+            `توکن ضرب شد (ID: ${mintedTokenId.toString()}) و حراج با قیمت شروع ${priceEth} ${CURRENCY} ایجاد شد.`,
+            {
+                type: "success",
+                title: "ضرب و حراج موفق",
+                duration: 9000,
+                actions: [
+                    {
+                        label: "نمایش متادیتا (کپی)",
+                        primary: false,
+                        onClick: () => copyToClipboard(metadataPreview),
+                    },
+                ],
+            }
+        );
+        setMintStatus(`موفق! توکن: ${mintedTokenId.toString()}`, "success");
+        mintForm.reset();
+    } catch (error) {
+        console.error("Mint+Auction failed", error);
+        showNotification(error.message || "عملیات ناموفق بود. کنسول را بررسی کنید.", {
+            type: "error",
+            title: "خطا",
+        });
+        setMintStatus(error.message || "خطا", "error");
+    } finally {
+        mintSubmitButton.disabled = false;
+        mintSubmitButton.textContent = "ضرب و حراج کردن NFT";
+        spinner?.classList.add("hidden");
+    }
+}
+
+function setMintStatus(message, type = "info") {
+    if (!mintResult) return;
+    mintResult.textContent = message;
+    mintResult.className = "";
+    mintResult.classList.add(
+        "p-3",
+        "rounded",
+        "mb-4",
+        "text-sm",
+        "text-right"
+    );
+    if (type === "error") {
+        mintResult.classList.add("bg-red-900/50", "text-red-400");
+    } else if (type === "success") {
+        mintResult.classList.add("bg-green-900/50", "text-green-400");
+    } else {
+        mintResult.classList.add("bg-blue-900/50", "text-blue-400");
+    }
+    mintResult.classList.remove("hidden");
+}
+
+function shortenAddress(address = "") {
+    if (!address || address.length < 10) return address || "N/A";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+// preload config
+loadBackendConfig();
