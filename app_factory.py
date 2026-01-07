@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from api.nft import router as nft_router
+from api.auction import router as auction_router
 import os
 from pathlib import Path
 import json
@@ -344,6 +345,7 @@ def create_app() -> FastAPI:
         return [listing.to_dict() for listing in listings]
 
     app.include_router(nft_router)
+    app.include_router(auction_router)
     
     return app
 

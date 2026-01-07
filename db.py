@@ -4,6 +4,7 @@ import os
 import sqlite3
 from pathlib import Path
 from typing import Optional
+import time
 
 
 DB_PATH_SETTING = os.getenv("MARKETPLACE_DB_PATH", "marketplace.db")
@@ -80,6 +81,38 @@ def init_db() -> None:
         pass  # Column already exists
     conn.commit()
     _is_initialized = True
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS auctions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token_id INTEGER NOT NULL,
+            nft_address TEXT NOT NULL,
+            chain_id INTEGER NOT NULL DEFAULT 11155111,
+            seller_address TEXT NOT NULL,
+            start_price_wei TEXT NOT NULL,
+            current_bid_wei TEXT,
+            current_bidder_address TEXT,
+            start_time INTEGER NOT NULL,
+            end_time INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+            UNIQUE (token_id, nft_address, chain_id)
+        );
+        """
+    )
+
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS bids (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            auction_id INTEGER NOT NULL,
+            bidder_address TEXT NOT NULL,
+            bid_amount_wei TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            FOREIGN KEY (auction_id) REFERENCES auctions(id)
+        );
+        """
+    )
 
 
 def reset_listings_table() -> None:
@@ -217,3 +250,119 @@ def fetch_listings_by_collection(collection: str) -> list[sqlite3.Row]:
         (collection,),
     )
     return cursor.fetchall()
+
+
+def create_auction(
+    *,
+    token_id: int,
+    nft_address: str,
+    seller_address: str,
+    start_price_wei: str,
+    start_time: int,
+    end_time: int,
+    chain_id: int ,
+):
+    init_db()
+    conn = get_connection()
+    with conn:
+        conn.execute(
+            """
+            INSERT INTO auctions (
+                token_id, nft_address, chain_id,
+                seller_address, start_price_wei,
+                start_time, end_time
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                token_id,
+                nft_address,
+                chain_id,
+                seller_address,
+                start_price_wei,
+                start_time,
+                end_time,
+            ),
+        )
+
+
+
+
+
+def place_bid(
+    *,
+    auction_id: int,
+    bidder_address: str,
+    bid_amount_wei: str,
+):
+    init_db()
+    conn = get_connection()
+
+    auction = conn.execute(
+        "SELECT * FROM auctions WHERE id = ?",
+        (auction_id,),
+    ).fetchone()
+
+    if not auction:
+        raise ValueError("Auction not found")
+
+    now = int(time.time())
+
+    if auction["status"] != "ACTIVE":
+        raise ValueError("Auction not active")
+
+    if now > auction["end_time"]:
+        raise ValueError("Auction already ended")
+
+    current = auction["current_bid_wei"] or auction["start_price_wei"]
+
+    if int(bid_amount_wei) <= int(current):
+        raise ValueError("Bid too low")
+
+    with conn:
+        # insert bid
+        conn.execute(
+            """
+            INSERT INTO bids (auction_id, bidder_address, bid_amount_wei, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (auction_id, bidder_address, bid_amount_wei, now),
+        )
+
+        # update auction
+        conn.execute(
+            """
+            UPDATE auctions
+            SET current_bid_wei = ?, current_bidder_address = ?
+            WHERE id = ?
+            """,
+            (bid_amount_wei, bidder_address, auction_id),
+        )
+
+def fetch_active_auctions() -> list[sqlite3.Row]:
+    init_db()
+    conn = get_connection()
+    cursor = conn.execute(
+        """
+        SELECT *
+        FROM auctions
+        WHERE status = 'ACTIVE'
+        ORDER BY end_time ASC;
+        """
+    )
+    return cursor.fetchall()
+
+def end_expired_auctions():
+    init_db()
+    conn = get_connection()
+    now = int(time.time())
+
+    with conn:
+        conn.execute(
+            """
+            UPDATE auctions
+            SET status = 'ENDED'
+            WHERE status = 'ACTIVE' AND end_time < ?
+            """,
+            (now,),
+        )
