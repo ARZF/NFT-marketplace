@@ -292,6 +292,13 @@ def create_app() -> FastAPI:
         """
         return FileResponse(str(Path(__file__).parent / "swap.html"))
 
+    @app.get("/auction.html", include_in_schema=False)
+    async def auction_page() -> FileResponse:
+        """
+        Return the auction page.
+        """
+        return FileResponse(str(Path(__file__).parent / "auction.html"))
+
     @app.get("/activity.html", include_in_schema=False)
     async def activity_page() -> FileResponse:
         """
